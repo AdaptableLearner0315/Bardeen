@@ -1,0 +1,563 @@
+{
+  "metadata": {
+    "version": "2.0",
+    "created": "2026-02-01",
+    "total_questions": 24,
+    "categories": ["company_research", "financial_analysis", "competitive_intelligence", "action_execution"],
+    "description": "B2B Account Intelligence evaluation dataset aligned with actual use cases"
+  },
+  "questions": [
+    {
+      "id": "company_001",
+      "question": "When was Stripe founded and who are the founders?",
+      "category": "company_research",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Stripe was founded in 2010 by Patrick and John Collison",
+        "answer_variants": ["2010", "Patrick Collison", "John Collison", "Collison brothers"],
+        "facts": {"founding_year": 2010, "founders": ["Patrick Collison", "John Collison"]}
+      },
+      "evaluation": {
+        "criteria": "Must include founding year (2010) and founders (Patrick & John Collison)",
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "company_002",
+      "question": "What is Datadog's headquarters location and when did they IPO?",
+      "category": "company_research",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Datadog is headquartered in New York City and IPO'd in 2019",
+        "answer_variants": ["New York", "NYC", "2019 IPO", "September 2019"],
+        "facts": {"headquarters": "New York City", "ipo_year": 2019}
+      },
+      "evaluation": {
+        "criteria": "Must include NYC headquarters and 2019 IPO",
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "company_003",
+      "question": "What products and services does Snowflake offer?",
+      "category": "company_research",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Snowflake offers a cloud data platform including data warehousing, data lakes, data sharing, and data applications",
+        "answer_variants": ["data cloud", "data warehouse", "data sharing", "data lake"],
+        "facts": {"products": ["data warehouse", "data lake", "data sharing", "data apps"]}
+      },
+      "evaluation": {
+        "criteria": "Must mention data cloud, warehousing, data sharing",
+        "correctness_threshold": 0.80,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "company_004",
+      "question": "Who is the CEO of Salesforce and when did they take the role?",
+      "category": "company_research",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Marc Benioff is the CEO of Salesforce, co-founding the company in 1999",
+        "answer_variants": ["Marc Benioff", "Benioff", "1999"],
+        "facts": {"ceo": "Marc Benioff", "founded": 1999}
+      },
+      "evaluation": {
+        "criteria": "Must include Marc Benioff",
+        "correctness_threshold": 0.90,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "company_005",
+      "question": "What is Notion's primary product and target market?",
+      "category": "company_research",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Notion is an all-in-one workspace for notes, docs, wikis, and project management, targeting teams and enterprises",
+        "answer_variants": ["workspace", "productivity", "teams", "enterprises", "notes", "docs"],
+        "facts": {"product": "all-in-one workspace", "target": "teams and enterprises"}
+      },
+      "evaluation": {
+        "criteria": "Must mention workspace/productivity and teams/enterprises",
+        "correctness_threshold": 0.80,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "company_006",
+      "question": "When was OpenAI founded and what is their flagship product?",
+      "category": "company_research",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "OpenAI was founded in 2015, with ChatGPT and GPT models as flagship products",
+        "answer_variants": ["2015", "ChatGPT", "GPT-4", "GPT models"],
+        "facts": {"founding_year": 2015, "flagship": "ChatGPT"}
+      },
+      "evaluation": {
+        "criteria": "Must include 2015 founding and ChatGPT/GPT models",
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "finance_001",
+      "question": "What is Apple's current market capitalization?",
+      "category": "financial_analysis",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Apple's market cap is approximately $3 trillion",
+        "answer_variants": ["3 trillion", "$3T", "3T", "around 3 trillion"],
+        "facts": {"market_cap_range": [2500000000000, 4000000000000]}
+      },
+      "evaluation": {
+        "criteria": "Must provide recent market cap figure (trillions range)",
+        "correctness_threshold": 0.80,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "finance_002",
+      "question": "Compare the market caps of Microsoft, Apple, and Google",
+      "category": "financial_analysis",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 4
+      },
+      "ground_truth": {
+        "answer": "Apple and Microsoft are both around $3 trillion, Google (Alphabet) around $2 trillion",
+        "answer_variants": ["Apple largest", "Microsoft similar", "trillion"],
+        "facts": {"ranking": ["Apple", "Microsoft", "Google"]}
+      },
+      "evaluation": {
+        "criteria": "Must rank all three with approximate values",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "finance_003",
+      "question": "What was Tesla's revenue in their most recent fiscal year?",
+      "category": "financial_analysis",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Tesla's annual revenue was approximately $96 billion in 2023",
+        "answer_variants": ["96 billion", "$96B", "around 95 billion"],
+        "facts": {"revenue_range": [80000000000, 120000000000]}
+      },
+      "evaluation": {
+        "criteria": "Must provide revenue figure with year specified",
+        "correctness_threshold": 0.80,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "finance_004",
+      "question": "Calculate the P/E ratio if a company has stock price $150 and EPS of $5",
+      "category": "financial_analysis",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["calculator"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "answer": "The P/E ratio is 30",
+        "answer_variants": ["30", "30x", "P/E of 30"],
+        "facts": {"calculation": "150/5=30"}
+      },
+      "evaluation": {
+        "criteria": "Must calculate 30 (150/5)",
+        "correctness_threshold": 0.95,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "finance_005",
+      "question": "What is NVIDIA's year-over-year revenue growth rate?",
+      "category": "financial_analysis",
+      "difficulty": "hard",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 4
+      },
+      "ground_truth": {
+        "answer": "NVIDIA's YoY revenue growth has been over 100% driven by AI chip demand",
+        "answer_variants": ["over 100%", "doubled", "significant growth", "AI demand"],
+        "facts": {"growth_type": "significant positive"}
+      },
+      "evaluation": {
+        "criteria": "Must provide growth percentage with context",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "finance_006",
+      "question": "How much funding has Anthropic raised and at what valuation?",
+      "category": "financial_analysis",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Anthropic has raised over $7 billion at a valuation of approximately $18 billion",
+        "answer_variants": ["billions", "over 7 billion", "18 billion valuation"],
+        "facts": {"funding_range": [5000000000, 10000000000]}
+      },
+      "evaluation": {
+        "criteria": "Must include funding amount and valuation estimate",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "compete_001",
+      "question": "Compare Slack vs Microsoft Teams for enterprise communication",
+      "category": "competitive_intelligence",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "Slack excels in integrations and UX, Teams offers better Microsoft 365 integration and is included in enterprise licenses",
+        "answer_variants": ["Slack integrations", "Teams Microsoft 365", "enterprise features"],
+        "facts": {"comparison_points": ["integrations", "pricing", "ecosystem"]}
+      },
+      "evaluation": {
+        "criteria": "Must compare features, pricing, market position",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "compete_002",
+      "question": "Who are Stripe's main competitors in payment processing?",
+      "category": "competitive_intelligence",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Stripe's main competitors include PayPal, Square (Block), Adyen, and Braintree",
+        "answer_variants": ["PayPal", "Square", "Adyen", "Block", "Braintree"],
+        "facts": {"competitors": ["PayPal", "Square", "Adyen", "Braintree"]}
+      },
+      "evaluation": {
+        "criteria": "Must list competitors like PayPal, Square, Adyen",
+        "correctness_threshold": 0.80,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "compete_003",
+      "question": "How does Snowflake compare to Databricks for data analytics?",
+      "category": "competitive_intelligence",
+      "difficulty": "hard",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "Snowflake focuses on data warehousing with SQL, Databricks on data engineering with Spark and ML workloads",
+        "answer_variants": ["Snowflake SQL", "Databricks Spark", "warehouse vs lakehouse"],
+        "facts": {"key_differences": ["architecture", "use cases", "ML focus"]}
+      },
+      "evaluation": {
+        "criteria": "Must compare architecture, use cases, pricing models",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "compete_004",
+      "question": "What are the pros and cons of AWS vs GCP for startups?",
+      "category": "competitive_intelligence",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "AWS has more services and market share; GCP offers better pricing, ML tools, and startup credits",
+        "answer_variants": ["AWS services", "GCP pricing", "startup credits", "ML tools"],
+        "facts": {"aws_pros": ["services", "market share"], "gcp_pros": ["pricing", "ML", "credits"]}
+      },
+      "evaluation": {
+        "criteria": "Must list advantages/disadvantages for each",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "compete_005",
+      "question": "Compare Figma vs Sketch vs Adobe XD for UI design",
+      "category": "competitive_intelligence",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "Figma leads with browser-based collaboration, Sketch is Mac-native with plugins, Adobe XD integrates with Creative Cloud",
+        "answer_variants": ["Figma collaboration", "Sketch Mac", "Adobe Creative Cloud"],
+        "facts": {"figma": "browser collaboration", "sketch": "mac native", "xd": "adobe ecosystem"}
+      },
+      "evaluation": {
+        "criteria": "Must compare collaboration, pricing, features",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "compete_006",
+      "question": "Who are the main competitors to Notion in the productivity space?",
+      "category": "competitive_intelligence",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Notion's main competitors include Coda, Confluence, Roam Research, and Obsidian",
+        "answer_variants": ["Coda", "Confluence", "Roam", "Obsidian"],
+        "facts": {"competitors": ["Coda", "Confluence", "Roam Research", "Obsidian"]}
+      },
+      "evaluation": {
+        "criteria": "Must list competitors like Coda, Confluence, Roam",
+        "correctness_threshold": 0.80,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "action_001",
+      "question": "Summarize my unread emails from today",
+      "category": "action_execution",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["gmail"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "answer": "Email summary provided or authentication required message",
+        "answer_variants": ["email summary", "authentication required", "no unread emails"],
+        "facts": {"action_type": "email_read"}
+      },
+      "evaluation": {
+        "criteria": "Must attempt to access Gmail and provide summary or clear error",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "action_002",
+      "question": "What meetings do I have scheduled this week?",
+      "category": "action_execution",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["google_calendar"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "answer": "Meeting list provided or authentication required message",
+        "answer_variants": ["meeting list", "authentication required", "no meetings"],
+        "facts": {"action_type": "calendar_read"}
+      },
+      "evaluation": {
+        "criteria": "Must attempt to access Calendar and list events or clear error",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "action_003",
+      "question": "Draft an email to schedule a product demo",
+      "category": "action_execution",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["gmail"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "answer": "Professional email draft with subject, greeting, body, and call to action",
+        "answer_variants": ["email draft", "demo request", "schedule meeting"],
+        "facts": {"action_type": "email_draft"}
+      },
+      "evaluation": {
+        "criteria": "Must generate professional email draft",
+        "correctness_threshold": 0.75,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "action_004",
+      "question": "Check if I'm free tomorrow at 2pm",
+      "category": "action_execution",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["google_calendar"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "answer": "Availability status or authentication required message",
+        "answer_variants": ["free", "busy", "authentication required"],
+        "facts": {"action_type": "calendar_check"}
+      },
+      "evaluation": {
+        "criteria": "Must check calendar availability",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "action_005",
+      "question": "Calculate my meeting load for this week",
+      "category": "action_execution",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["google_calendar", "calculator"],
+        "tool_order": "sequential",
+        "min_tools": 2,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Meeting count and total hours or authentication required",
+        "answer_variants": ["X meetings", "Y hours", "authentication required"],
+        "facts": {"action_type": "calendar_analyze"}
+      },
+      "evaluation": {
+        "criteria": "Must count meetings and calculate hours",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "action_006",
+      "question": "Find emails from last week mentioning 'proposal'",
+      "category": "action_execution",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["gmail"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "answer": "Email search results or authentication required",
+        "answer_variants": ["found emails", "no matches", "authentication required"],
+        "facts": {"action_type": "email_search"}
+      },
+      "evaluation": {
+        "criteria": "Must search emails with criteria",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    }
+  ]
+}
