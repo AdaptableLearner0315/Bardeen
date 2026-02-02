@@ -31,17 +31,65 @@
                 <div class="chat-messages" id="chat-messages">
                     <div class="welcome-message">
                         <h3>Welcome to the B2B Account Intelligence Agent!</h3>
-                        <p>I help sales and research teams gather company insights and take actions through natural language. Ask me about:</p>
-                        <ul>
-                            <li>🏢 Company research (founders, HQ, products, tech stack)</li>
-                            <li>📈 Financial analysis (market cap, revenue, P/E ratios)</li>
-                            <li>🎯 Competitive intelligence (market comparisons, competitors)</li>
-                            <li>💻 Tech signals (GitHub activity, HackerNews sentiment)</li>
-                            <li>🧮 Calculations (growth rates, margins, projections)</li>
-                            <li>📧 Email actions (send emails, summarize inbox)</li>
-                            <li>📅 Calendar actions (schedule meetings, check availability)</li>
-                        </ul>
+                        <p>I help sales and research teams gather company insights and take actions through natural language. Try these examples:</p>
+                        <div class="example-queries">
+                            <div class="example-query" data-query="When was Stripe founded?">
+                                <span class="example-icon">🏢</span>
+                                <div class="example-content">
+                                    <span class="example-text">"When was Stripe founded?"</span>
+                                    <span class="example-type">Company Research</span>
+                                </div>
+                            </div>
+                            <div class="example-query" data-query="What's Apple's market cap?">
+                                <span class="example-icon">📈</span>
+                                <div class="example-content">
+                                    <span class="example-text">"What's Apple's market cap?"</span>
+                                    <span class="example-type">Financial Analysis</span>
+                                </div>
+                            </div>
+                            <div class="example-query" data-query="Compare Slack vs Teams">
+                                <span class="example-icon">🎯</span>
+                                <div class="example-content">
+                                    <span class="example-text">"Compare Slack vs Teams"</span>
+                                    <span class="example-type">Competitive Intelligence</span>
+                                </div>
+                            </div>
+                            <div class="example-query" data-query="Summarize my emails">
+                                <span class="example-icon">📧</span>
+                                <div class="example-content">
+                                    <span class="example-text">"Summarize my emails"</span>
+                                    <span class="example-type">Actions - requires auth</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="auto-mode-hint">💡 Complex queries auto-trigger Deep Research mode</p>
                         <p><strong>Available Tools:</strong> <span id="available-tools">Loading...</span></p>
+                    </div>
+
+                    <!-- Depth Metrics Display (shown after multi-tool queries) -->
+                    <div id="depth-metrics" class="depth-metrics" style="display: none;">
+                        <div class="depth-metrics-header">
+                            <span class="depth-metrics-icon">📊</span>
+                            <span class="depth-metrics-title">Query Depth Metrics</span>
+                        </div>
+                        <div class="depth-metrics-grid">
+                            <div class="depth-metric">
+                                <span class="depth-metric-value" id="metric-tools-used">0</span>
+                                <span class="depth-metric-label">Tools Used</span>
+                            </div>
+                            <div class="depth-metric">
+                                <span class="depth-metric-value" id="metric-total-latency">0ms</span>
+                                <span class="depth-metric-label">Total Latency</span>
+                            </div>
+                            <div class="depth-metric">
+                                <span class="depth-metric-value" id="metric-mode">Normal</span>
+                                <span class="depth-metric-label">Research Mode</span>
+                            </div>
+                            <div class="depth-metric">
+                                <span class="depth-metric-value" id="metric-sources">0</span>
+                                <span class="depth-metric-label">Sources</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
