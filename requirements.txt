@@ -1,0 +1,33 @@
+# LLM and AI
+anthropic>=0.18.0
+
+# Tools
+ddgs>=6.0.0  # Free real-time web search (primary, DuckDuckGo)
+tavily-python>=0.3.0  # Web search (fallback, requires API key)
+wikipedia-api>=0.6.0  # Wikipedia access
+
+# Google API (Gmail, Calendar)
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.2.0
+google-auth-oauthlib>=1.2.0
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
+
+# Data and utilities
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+
+# Evaluation
+sentence-transformers>=2.3.0  # For semantic similarity
+numpy>=1.24.0
+
+# Optional: Better JSON handling
+orjson>=3.9.0
+
+# Development
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-playwright>=0.4.0

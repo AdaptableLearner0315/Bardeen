@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B2B Account Intelligence Agent</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🏢 B2B Account Intelligence Agent</h1>
+            <p class="subtitle">AI-powered company research and workflow automation</p>
+            <div class="status" id="status">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Checking connection...</span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="chat">💬 Live Chat</button>
+            <button class="tab-button" data-tab="evaluations">📊 Evaluations</button>
+            <button class="tab-button" data-tab="dataset">📚 Dataset</button>
+        </nav>
+
+        <!-- Chat Tab -->
+        <div id="chat-tab" class="tab-content active">
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="welcome-message">
+                        <h3>Welcome to the B2B Account Intelligence Agent!</h3>
+                        <p>I help sales and research teams gather company insights and take actions through natural language. Ask me about:</p>
+                        <ul>
+                            <li>🏢 Company research (founders, HQ, products, tech stack)</li>
+                            <li>📈 Financial analysis (market cap, revenue, P/E ratios)</li>
+                            <li>🎯 Competitive intelligence (market comparisons, competitors)</li>
+                            <li>💻 Tech signals (GitHub activity, HackerNews sentiment)</li>
+                            <li>🧮 Calculations (growth rates, margins, projections)</li>
+                            <li>📧 Email actions (send emails, summarize inbox)</li>
+                            <li>📅 Calendar actions (schedule meetings, check availability)</li>
+                        </ul>
+                        <p><strong>Available Tools:</strong> <span id="available-tools">Loading...</span></p>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <!-- Research Mode Toggle -->
+                    <div class="mode-toggle">
+                        <span class="mode-label">Research Mode:</span>
+                        <div class="toggle-buttons">
+                            <button id="mode-auto" class="mode-button active" data-mode="auto">
+                                ✨ Auto
+                                <span class="mode-desc">AI detects complexity</span>
+                            </button>
+                            <button id="mode-normal" class="mode-button" data-mode="normal">
+                                🔍 Normal
+                                <span class="mode-desc">2-3 core tools</span>
+                            </button>
+                            <button id="mode-deep" class="mode-button" data-mode="deep">
+                                🔬 Deep
+                                <span class="mode-desc">5-10 tools</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <textarea
+                            id="chat-input"
+                            placeholder="Ask about a company, e.g., 'When was Stripe founded?' or 'What is Snowflake's market cap?'"
+                            rows="3"
+                        ></textarea>
+                        <button id="send-button" class="primary-button">
+                            Send
+                        </button>
+                    </div>
+                    <div class="chat-options">
+                        <label>
+                            <input type="checkbox" id="reset-conversation">
+                            Reset conversation
+                        </label>
+                        <span id="mode-indicator" class="mode-indicator">Mode: Auto (AI selects)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluations Tab -->
+        <div id="evaluations-tab" class="tab-content">
+            <div class="evaluation-container">
+                <div class="section-header">
+                    <h2>Evaluation Runs</h2>
+                    <button id="refresh-evaluations" class="secondary-button">
+                        🔄 Refresh
+                    </button>
+                </div>
+
+                <div id="evaluation-list" class="evaluation-list">
+                    <p class="loading">Loading evaluations...</p>
+                </div>
+
+                <div id="evaluation-detail" class="evaluation-detail" style="display: none;">
+                    <button id="back-to-list" class="secondary-button">← Back to List</button>
+                    <div id="evaluation-detail-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dataset Tab -->
+        <div id="dataset-tab" class="tab-content">
+            <div class="dataset-container">
+                <h2>Evaluation Dataset</h2>
+                <div id="dataset-stats" class="dataset-stats">
+                    <p class="loading">Loading dataset...</p>
+                </div>
+                <div id="dataset-questions" class="dataset-questions"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

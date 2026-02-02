@@ -1,0 +1,589 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created": "2024-01-28",
+    "total_questions": 20,
+    "categories": ["geography", "history", "science", "current_events"],
+    "description": "Evaluation dataset for research assistant agent with tool calling"
+  },
+  "questions": [
+    {
+      "id": "geo_001",
+      "question": "What is the population density of France in people per square kilometer?",
+      "category": "geography",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "Approximately 104-105 people per square kilometer",
+        "answer_variants": [
+          "104 people per km²",
+          "105 people per square kilometer",
+          "~104 people/km²"
+        ],
+        "facts": {
+          "population": 67400000,
+          "area_km2": 643801,
+          "density": 104.69
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "geo_002",
+      "question": "Which country has a larger land area: Brazil or Australia?",
+      "category": "geography",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "Brazil has a larger land area than Australia",
+        "answer_variants": [
+          "Brazil",
+          "Brazil is larger",
+          "Brazil has more land area"
+        ],
+        "facts": {
+          "brazil_area_km2": 8515767,
+          "australia_area_km2": 7692024
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.90,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "geo_003",
+      "question": "What is the combined population of Japan and South Korea?",
+      "category": "geography",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["wikipedia", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 4
+      },
+      "ground_truth": {
+        "answer": "Approximately 175-177 million people",
+        "answer_variants": [
+          "176 million",
+          "175-177 million",
+          "about 176 million people"
+        ],
+        "facts": {
+          "japan_population": 125000000,
+          "south_korea_population": 51000000,
+          "combined": 176000000
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "geo_004",
+      "question": "How many times larger is Russia's land area compared to Germany?",
+      "category": "geography",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["wikipedia", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "Russia is approximately 48 times larger than Germany",
+        "answer_variants": [
+          "48 times",
+          "about 48 times larger",
+          "approximately 48x"
+        ],
+        "facts": {
+          "russia_area_km2": 17098242,
+          "germany_area_km2": 357022,
+          "ratio": 47.88
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "geo_005",
+      "question": "What is the approximate distance between New York City and Los Angeles in kilometers?",
+      "category": "geography",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Approximately 3,900-4,000 kilometers",
+        "answer_variants": [
+          "3900 km",
+          "4000 kilometers",
+          "about 3944 km"
+        ],
+        "facts": {
+          "distance_km": 3944
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "hist_001",
+      "question": "How many years passed between the first moon landing and the fall of the Berlin Wall?",
+      "category": "history",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["wikipedia", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "20 years",
+        "answer_variants": [
+          "20 years",
+          "twenty years",
+          "2 decades"
+        ],
+        "facts": {
+          "moon_landing_year": 1969,
+          "berlin_wall_fall_year": 1989,
+          "difference": 20
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "hist_002",
+      "question": "Who was the president of the United States when World War II ended?",
+      "category": "history",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Harry S. Truman",
+        "answer_variants": [
+          "Harry Truman",
+          "Truman",
+          "Harry S Truman"
+        ],
+        "facts": {
+          "president": "Harry S. Truman",
+          "ww2_end_year": 1945
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "hist_003",
+      "question": "In what year did the Soviet Union dissolve?",
+      "category": "history",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "1991",
+        "answer_variants": [
+          "1991",
+          "December 1991",
+          "December 26, 1991"
+        ],
+        "facts": {
+          "dissolution_year": 1991
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "hist_004",
+      "question": "How old was Albert Einstein when he published his theory of general relativity?",
+      "category": "history",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["wikipedia", "calculator"],
+        "tool_order": "any",
+        "min_tools": 2,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "answer": "36 years old",
+        "answer_variants": [
+          "36",
+          "36 years old",
+          "thirty-six"
+        ],
+        "facts": {
+          "einstein_birth_year": 1879,
+          "general_relativity_year": 1915,
+          "age": 36
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "hist_005",
+      "question": "Which came first: the invention of the telephone or the light bulb?",
+      "category": "history",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "The telephone was invented first (1876 vs 1879)",
+        "answer_variants": [
+          "telephone",
+          "the telephone",
+          "telephone came first"
+        ],
+        "facts": {
+          "telephone_year": 1876,
+          "light_bulb_year": 1879
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.90,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "sci_001",
+      "question": "What is the speed of light in meters per second?",
+      "category": "science",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "299,792,458 meters per second",
+        "answer_variants": [
+          "299792458 m/s",
+          "approximately 300 million meters per second",
+          "about 3 × 10^8 m/s"
+        ],
+        "facts": {
+          "speed_of_light_ms": 299792458
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "sci_002",
+      "question": "How many planets in our solar system are larger than Earth?",
+      "category": "science",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "4 planets (Jupiter, Saturn, Uranus, Neptune)",
+        "answer_variants": [
+          "4",
+          "four",
+          "4 planets"
+        ],
+        "facts": {
+          "count": 4,
+          "planets": ["Jupiter", "Saturn", "Uranus", "Neptune"]
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "sci_003",
+      "question": "What is the boiling point of water in Fahrenheit at sea level?",
+      "category": "science",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia", "calculator"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "212 degrees Fahrenheit",
+        "answer_variants": [
+          "212°F",
+          "212 degrees Fahrenheit",
+          "212F"
+        ],
+        "facts": {
+          "boiling_point_f": 212
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "sci_004",
+      "question": "What percentage of Earth's atmosphere is nitrogen?",
+      "category": "science",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Approximately 78%",
+        "answer_variants": [
+          "78%",
+          "about 78 percent",
+          "roughly 78%"
+        ],
+        "facts": {
+          "nitrogen_percentage": 78.08
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.90,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "sci_005",
+      "question": "How many bones are in the adult human body?",
+      "category": "science",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "206 bones",
+        "answer_variants": [
+          "206",
+          "206 bones",
+          "two hundred six"
+        ],
+        "facts": {
+          "bone_count": 206
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "curr_001",
+      "question": "Who won the FIFA World Cup in 2022?",
+      "category": "current_events",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "Argentina",
+        "answer_variants": [
+          "Argentina",
+          "Argentine national team",
+          "Argentina won"
+        ],
+        "facts": {
+          "winner": "Argentina",
+          "year": 2022
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "curr_002",
+      "question": "In what year did the COVID-19 pandemic begin?",
+      "category": "current_events",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "2019 (officially declared pandemic in March 2020)",
+        "answer_variants": [
+          "2019",
+          "2020",
+          "late 2019"
+        ],
+        "facts": {
+          "first_cases_year": 2019,
+          "pandemic_declared_year": 2020
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": true,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "curr_003",
+      "question": "Who is the current Secretary-General of the United Nations?",
+      "category": "current_events",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "António Guterres",
+        "answer_variants": [
+          "António Guterres",
+          "Antonio Guterres",
+          "Guterres"
+        ],
+        "facts": {
+          "name": "António Guterres",
+          "took_office": 2017
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "curr_004",
+      "question": "What year did the United Kingdom officially leave the European Union (Brexit)?",
+      "category": "current_events",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "2020 (January 31, 2020)",
+        "answer_variants": [
+          "2020",
+          "January 2020",
+          "2020"
+        ],
+        "facts": {
+          "brexit_year": 2020
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "curr_005",
+      "question": "Which company launched the ChatGPT AI assistant?",
+      "category": "current_events",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "answer": "OpenAI",
+        "answer_variants": [
+          "OpenAI",
+          "Open AI",
+          "OpenAI Inc."
+        ],
+        "facts": {
+          "company": "OpenAI",
+          "launch_year": 2022
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": true,
+        "allows_approximation": false
+      }
+    }
+  ]
+}
