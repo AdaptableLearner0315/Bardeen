@@ -64,6 +64,33 @@ class ChatResponse(BaseModel):
     # New: Confidence indicator
     low_confidence: bool = False
     low_confidence_reason: Optional[str] = None
+    # New: Depth metrics for multi-tool queries
+    depth_metrics: Optional[Dict[str, Any]] = None
+
+
+class B2BEvaluationResponse(BaseModel):
+    """Response model for B2B evaluation metrics."""
+    run_id: str
+    timestamp: str
+    dataset_type: str = "b2b"
+    total_questions: int
+    # B2B-specific metrics
+    overall_pass_rate: float
+    avg_accuracy_score: float
+    tool_precision: float
+    multi_tool_rate: float
+    action_success_rate: float
+    # Category breakdown
+    category_metrics: Dict[str, Any]
+    # Depth metrics
+    avg_depth: float
+    max_depth_achieved: int
+    avg_step_score: float
+    pass_k_step1: float
+    pass_k_step2: float
+    pass_k_overall: float
+    # Detailed results
+    question_results: List[Dict[str, Any]]
 
 class EvaluationListResponse(BaseModel):
     evaluations: List[Dict[str, Any]]
@@ -251,6 +278,25 @@ Please provide a thorough, multi-faceted analysis using multiple tools:
             low_confidence_reason = "Tool limit reached. Increase tool limit for more comprehensive results."
             clean_answer = answer.split("]\n", 1)[1] if "]\n" in answer else answer
 
+    # Calculate depth metrics for multi-tool queries
+    depth_metrics = None
+    if len(tool_traces) >= 2:
+        depth_metrics = {
+            "depth": len(tool_traces),
+            "tools_sequence": [t.tool_name for t in tool_traces],
+            "total_tool_latency_ms": sum(t.latency_ms for t in tool_traces),
+            "success_rate": sum(1 for t in tool_traces if t.status.value == "success") / len(tool_traces),
+            "steps": [
+                {
+                    "step": i + 1,
+                    "tool": t.tool_name,
+                    "latency_ms": t.latency_ms,
+                    "status": t.status.value
+                }
+                for i, t in enumerate(tool_traces)
+            ]
+        }
+
     return ChatResponse(
         answer=clean_answer,
         tool_calls=tool_calls_dict,
@@ -261,7 +307,8 @@ Please provide a thorough, multi-faceted analysis using multiple tools:
         is_auto_detected=is_auto_detected,
         execution_plan=execution_plan.to_dict() if execution_plan else None,
         low_confidence=low_confidence,
-        low_confidence_reason=low_confidence_reason
+        low_confidence_reason=low_confidence_reason,
+        depth_metrics=depth_metrics
     )
 
 
@@ -339,6 +386,72 @@ async def get_dataset():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading dataset: {e}")
+
+
+@app.get("/api/b2b-dataset")
+async def get_b2b_dataset():
+    """Get the B2B evaluation dataset."""
+    dataset_path = Path("data/b2b_dataset.json")
+
+    if not dataset_path.exists():
+        raise HTTPException(status_code=404, detail="B2B dataset not found")
+
+    try:
+        loader = DatasetLoader(dataset_path)
+        questions = loader.load()
+        stats = loader.get_statistics()
+
+        return {
+            "metadata": loader.metadata,
+            "statistics": stats,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question": q.question,
+                    "category": q.category,
+                    "difficulty": q.difficulty,
+                    "expected_tools": q.expected_behavior.get("tools", []),
+                    "evaluation_criteria": q.evaluation.get("criteria", "")
+                }
+                for q in questions
+            ]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading B2B dataset: {e}")
+
+
+@app.get("/api/b2b-evaluations")
+async def list_b2b_evaluations():
+    """List all B2B evaluation runs with enhanced metrics."""
+    results_dir = Path("data/results")
+
+    if not results_dir.exists():
+        return {"evaluations": []}
+
+    evaluations = []
+    for result_file in sorted(results_dir.glob("b2b_eval_*.json"), reverse=True):
+        try:
+            with open(result_file, 'r') as f:
+                data = json.load(f)
+                evaluations.append({
+                    "run_id": data.get("run_id"),
+                    "timestamp": data.get("timestamp"),
+                    "dataset_type": "b2b",
+                    "total_questions": data.get("total_questions", 0),
+                    "overall_pass_rate": data.get("overall_pass_rate", 0),
+                    "avg_accuracy_score": data.get("avg_accuracy_score", 0),
+                    "tool_precision": data.get("tool_precision", 0),
+                    "avg_depth": data.get("avg_depth", 0),
+                    "category_summary": {
+                        cat: metrics.get("pass_rate", 0)
+                        for cat, metrics in data.get("category_metrics", {}).items()
+                    }
+                })
+        except Exception as e:
+            print(f"Error reading {result_file}: {e}")
+            continue
+
+    return {"evaluations": evaluations}
 
 
 @app.websocket("/ws/chat")
