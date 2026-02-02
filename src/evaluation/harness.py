@@ -14,8 +14,25 @@ from ..shared.models import (
 from ..shared.config import Config
 from .tracers.tool_tracer import ToolTracer
 from .tracers.error_tracer import ErrorTracer
+from .tracers.step_tracer import StepTracer, MultiAttemptTracer
 from .metrics.pass_k import PassKCalculator, PassKResult
+from .metrics.b2b_metrics import (
+    B2BMetrics, QuestionEvaluation, calculate_b2b_metrics,
+    format_b2b_metrics_report, check_b2b_targets
+)
+from .metrics.depth_metrics import (
+    StepEvaluation, DepthMetrics, AggregateDepthMetrics,
+    calculate_per_step_pass_k, calculate_aggregate_depth_metrics,
+    format_depth_metrics_report, check_depth_targets
+)
 from .visualizer import ASCIIVisualizer
+
+# Optional LLM judge import
+try:
+    from .llm_judge import LLMJudge, JudgeResult, calculate_judge_metrics
+    HAS_LLM_JUDGE = True
+except ImportError:
+    HAS_LLM_JUDGE = False
 
 
 class EvaluationHarness:
@@ -339,3 +356,291 @@ class EvaluationHarness:
             json.dump(results_dict, f, indent=2)
 
         print(f"Results saved to: {filepath}")
+
+
+class B2BEvaluationHarness(EvaluationHarness):
+    """
+    Extended evaluation harness for B2B-aligned evaluation.
+
+    Adds:
+    - LLM-as-Judge evaluation
+    - Depth-aware metrics
+    - Per-step pass^k consistency
+    - B2B-specific metrics
+    """
+
+    def __init__(self, config: Config, use_llm_judge: bool = True):
+        super().__init__(config)
+        self.use_llm_judge = use_llm_judge and HAS_LLM_JUDGE
+        if self.use_llm_judge:
+            self.llm_judge = LLMJudge()
+        self.step_tracers: Dict[str, MultiAttemptTracer] = {}
+
+    def run_b2b_evaluation(
+        self,
+        dataset: List[DatasetQuestion],
+        agent_fn: Callable[[str, ToolTracer, ErrorTracer], tuple[str, List[ToolCallTrace], List[ErrorTrace]]],
+        similarity_fn: Optional[Callable[[str, str], float]] = None
+    ) -> Dict[str, Any]:
+        """
+        Run B2B-aligned evaluation with depth tracking and LLM judging.
+
+        Args:
+            dataset: List of B2B questions to evaluate
+            agent_fn: Agent function
+            similarity_fn: Optional similarity function
+
+        Returns:
+            Dict with B2B metrics, depth metrics, and detailed results
+        """
+        run_id = f"b2b_eval_{int(time.time())}"
+        k = self.config.evaluation.k_attempts
+
+        print(f"Starting B2B evaluation run: {run_id}")
+        print(f"Dataset size: {len(dataset)}")
+        print(f"Attempts per question: {k}")
+        print(f"LLM Judge: {'Enabled' if self.use_llm_judge else 'Disabled'}")
+        print()
+
+        question_evaluations = []
+        depth_results = []
+        pass_k_depth_results = []
+        judge_results = []
+
+        for i, question in enumerate(dataset, 1):
+            print(f"[{i}/{len(dataset)}] Evaluating: {question.question[:60]}...")
+
+            # Create multi-attempt tracer for this question
+            multi_tracer = MultiAttemptTracer(
+                question_id=question.id,
+                question=question.question,
+                k=k
+            )
+            self.step_tracers[question.id] = multi_tracer
+
+            # Run k attempts and collect results
+            attempts_data = []
+            for attempt_num in range(1, k + 1):
+                step_tracer = multi_tracer.start_attempt()
+                tool_tracer = ToolTracer(attempt_number=attempt_num)
+                error_tracer = ErrorTracer()
+
+                start_time = time.time()
+                try:
+                    answer, tool_traces, error_traces = agent_fn(
+                        question.question,
+                        tool_tracer,
+                        error_tracer
+                    )
+
+                    # Record steps from tool traces
+                    for idx, trace in enumerate(tool_traces):
+                        step_tracer.start_step(
+                            tool_name=trace.tool_name,
+                            tool_params=trace.params,
+                            reasoning=getattr(trace, 'llm_reasoning', '')
+                        )
+                        step_tracer.end_step(
+                            result=trace.result,
+                            success=trace.status.value == "success" if hasattr(trace.status, 'value') else True
+                        )
+
+                except Exception as e:
+                    print(f"  Attempt {attempt_num} failed: {e}")
+                    answer = f"ERROR: {str(e)}"
+                    tool_traces = tool_tracer.get_traces()
+                    error_traces = error_tracer.get_errors()
+
+                end_time = time.time()
+                latency_ms = (end_time - start_time) * 1000
+
+                multi_tracer.end_attempt()
+
+                attempts_data.append({
+                    "attempt": attempt_num,
+                    "answer": answer,
+                    "tools_used": [t.tool_name for t in tool_traces],
+                    "latency_ms": latency_ms,
+                    "depth": len(tool_traces)
+                })
+
+            # Calculate depth metrics for this question
+            step_traces = multi_tracer.get_all_traces()
+            if step_traces:
+                # Convert to StepEvaluation format
+                step_evals_list = []
+                for attempt_traces in step_traces:
+                    attempt_step_evals = [
+                        StepEvaluation(
+                            depth=t.step_number,
+                            tool_name=t.tool_name,
+                            tool_params=t.tool_params,
+                            reasoning=t.reasoning,
+                            step_score=20.0,  # Default score
+                            latency_ms=t.latency_ms,
+                            success=t.success
+                        )
+                        for t in attempt_traces
+                    ]
+                    step_evals_list.append(attempt_step_evals)
+
+                # Calculate per-step pass^k
+                per_step_results = calculate_per_step_pass_k(step_evals_list, k=k)
+
+                # Create depth metrics
+                avg_depth = sum(len(traces) for traces in step_traces) / len(step_traces) if step_traces else 0
+                depth_result = DepthMetrics(
+                    question_id=question.id,
+                    max_depth=max(len(traces) for traces in step_traces) if step_traces else 0,
+                    avg_step_score=20.0,
+                    depth_weighted_score=20.0 * (1 + 0.1 * (avg_depth - 1)) if avg_depth > 0 else 0
+                )
+                depth_results.append(depth_result)
+
+            # Get best answer (most common)
+            answers = [a["answer"] for a in attempts_data]
+            from collections import Counter
+            best_answer = Counter(answers).most_common(1)[0][0] if answers else ""
+            tools_used = attempts_data[0]["tools_used"] if attempts_data else []
+            expected_tools = question.expected_behavior.get("tools", [])
+
+            # LLM Judge evaluation (if enabled)
+            score = 60.0  # Default
+            passed = False
+            dimension_scores = None
+
+            if self.use_llm_judge:
+                try:
+                    judge_result = self.llm_judge.evaluate(
+                        question=question.question,
+                        answer=best_answer,
+                        tools_used=tools_used,
+                        expected_tools=expected_tools,
+                        evaluation_criteria=question.evaluation.get("criteria", ""),
+                        pass_threshold=60.0
+                    )
+                    score = judge_result.total_score
+                    passed = judge_result.passed
+                    dimension_scores = {
+                        d.dimension: d.score for d in judge_result.dimension_scores
+                    }
+                    judge_results.append(judge_result)
+                    print(f"           LLM Judge Score: {score:.0f}/100 {'✓' if passed else '✗'}")
+                except Exception as e:
+                    print(f"           LLM Judge failed: {e}")
+
+            # Create question evaluation
+            question_eval = QuestionEvaluation(
+                question_id=question.id,
+                category=question.category,
+                question=question.question,
+                answer=best_answer,
+                tools_used=tools_used,
+                expected_tools=expected_tools,
+                score=score,
+                passed=passed,
+                dimension_scores=dimension_scores
+            )
+            question_evaluations.append(question_eval)
+
+            print(f"           Depth: {avg_depth:.1f} steps, Pass: {'✓' if passed else '✗'}")
+            print()
+
+        # Calculate aggregate metrics
+        b2b_metrics = calculate_b2b_metrics(question_evaluations)
+        depth_aggregate = calculate_aggregate_depth_metrics(depth_results)
+
+        # Print reports
+        print("\n" + "=" * 60)
+        print(format_b2b_metrics_report(b2b_metrics))
+        print(format_depth_metrics_report(depth_aggregate))
+
+        # Check targets
+        b2b_targets = check_b2b_targets(b2b_metrics)
+        depth_targets = check_depth_targets(depth_aggregate)
+
+        print("\nTARGET CHECK")
+        print("-" * 40)
+        all_targets_met = True
+        for name, target in {**b2b_targets, **depth_targets}.items():
+            status = "✓" if target["met"] else "✗"
+            print(f"  {name}: {target['value']:.1f}{target['unit']} "
+                  f"(target: {target['target']}{target['unit']}) {status}")
+            if not target["met"]:
+                all_targets_met = False
+
+        print(f"\nOverall: {'ALL TARGETS MET ✓' if all_targets_met else 'SOME TARGETS NOT MET ✗'}")
+        print("=" * 60)
+
+        # Prepare results
+        results = {
+            "run_id": run_id,
+            "timestamp": datetime.now().isoformat(),
+            "dataset_type": "b2b",
+            "total_questions": len(dataset),
+
+            # B2B metrics
+            "overall_pass_rate": b2b_metrics.overall_pass_rate,
+            "avg_accuracy_score": b2b_metrics.avg_accuracy_score,
+            "tool_precision": b2b_metrics.tool_precision,
+            "multi_tool_rate": b2b_metrics.multi_tool_rate,
+            "action_success_rate": b2b_metrics.action_success_rate,
+            "category_metrics": {
+                cat: {
+                    "total": m.total_questions,
+                    "passed": m.passed,
+                    "pass_rate": m.passed / m.total_questions if m.total_questions > 0 else 0,
+                    "avg_score": m.avg_score,
+                    "tool_precision": m.tool_precision
+                }
+                for cat, m in b2b_metrics.category_metrics.items()
+            },
+
+            # Depth metrics
+            "avg_depth": depth_aggregate.avg_depth,
+            "max_depth_achieved": depth_aggregate.max_depth_achieved,
+            "avg_step_score": depth_aggregate.avg_step_score,
+            "pass_k_step1": depth_aggregate.avg_pass_k_step1,
+            "pass_k_step2": depth_aggregate.avg_pass_k_step2,
+            "pass_k_overall": depth_aggregate.avg_pass_k_overall,
+
+            # Targets
+            "targets_met": all_targets_met,
+            "b2b_targets": b2b_targets,
+            "depth_targets": depth_targets,
+
+            # Detailed results
+            "question_results": [
+                {
+                    "question_id": e.question_id,
+                    "category": e.category,
+                    "question": e.question,
+                    "answer": e.answer[:200],
+                    "tools_used": e.tools_used,
+                    "expected_tools": e.expected_tools,
+                    "score": e.score,
+                    "passed": e.passed,
+                    "dimension_scores": e.dimension_scores
+                }
+                for e in question_evaluations
+            ]
+        }
+
+        # Save results
+        if self.config.evaluation.save_traces:
+            self._save_b2b_results(results)
+
+        return results
+
+    def _save_b2b_results(self, results: Dict[str, Any]):
+        """Save B2B evaluation results."""
+        results_dir = self.config.results_dir
+        results_dir.mkdir(parents=True, exist_ok=True)
+
+        filename = f"{results['run_id']}.json"
+        filepath = results_dir / filename
+
+        with open(filepath, 'w') as f:
+            json.dump(results, f, indent=2, default=str)
+
+        print(f"B2B results saved to: {filepath}")
