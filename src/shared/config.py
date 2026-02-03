@@ -13,6 +13,77 @@ class ResearchMode(Enum):
     DEEP = "deep"      # 5-10 tools
 
 
+# Response format limits
+RESPONSE_LIMITS = {
+    "normal_mode_words_min": 50,
+    "normal_mode_words_max": 60,
+    "deep_mode_summary_words": 100,
+    "table_max_rows": 4,
+    "body_truncation_chars": 5000,
+    "wikipedia_summary_chars": 1000,
+    "duckduckgo_result_chars": 100,
+}
+
+# Token limits for LLM requests
+TOKEN_LIMITS = {
+    "simple_query": 512,
+    "comparison_query": 1024,
+    "complex_query": 2048,
+    "plan_creation": 1024,
+    "recovery_deep": 2048,
+    "recovery_normal": 512,
+    "minimal_summary": 256,
+}
+
+# Timeout configuration (seconds)
+TIMEOUTS = {
+    "gmail": 10,
+    "calendar": 10,
+    "perplexity": 60,
+    "web_search": 10,
+    "duckduckgo": 10,
+    "default_tool": 10,
+    "wikipedia": 5,
+    "calculator": 1,
+    "yahoo_finance": 10,
+    "github": 10,
+    "website_scraper": 15,
+}
+
+# Conversation limits
+CONVERSATION = {
+    "max_short_term_messages": 20,
+    "max_history_for_context": 10,
+}
+
+# Query classification patterns (regex)
+QUERY_PATTERNS = {
+    "deep_indicators": [
+        r"research|analyze|comprehensive|detailed|in-depth|thorough",
+        r"compare|contrast|evaluate|assess",
+        r"explain|describe|elaborate",
+        r"what are all|list all|show me all",
+        r"history|timeline|evolution|trend",
+        r"impact|effect|consequence|result",
+        r"why|how come|reason",
+        r"pros and cons|advantages and disadvantages",
+        r"best practices|recommendations|suggestions",
+        r"step by step|walkthrough|guide"
+    ],
+    "simple_indicators": [
+        r"^what is |^who is |^when was ",
+        r"^define |^meaning of ",
+        r"^calculate |^compute ",
+        r"yes or no|true or false",
+        r"current|today|now|latest",
+        r"quick question|simple question",
+        r"in one word|in brief|shortly",
+        r"^is |^are |^was |^were ",
+        r"how many|how much|what year"
+    ]
+}
+
+
 @dataclass
 class LLMConfig:
     """LLM configuration."""
@@ -169,8 +240,8 @@ class StorageConfig:
 @dataclass
 class EvaluationConfig:
     """Evaluation harness configuration."""
-    k_attempts: int = 10
-    pass_k_values: List[int] = field(default_factory=lambda: [5, 10])
+    k_attempts: int = 3  # Set to 3 for evaluation run
+    pass_k_values: List[int] = field(default_factory=lambda: [3])  # Adjusted for k=3
     tolerance_percent: float = 10.0  # 5-10% tolerance
     consensus_threshold: float = 0.5  # >50% for majority
     enable_tracing: bool = True
