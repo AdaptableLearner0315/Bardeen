@@ -222,6 +222,7 @@ class Database:
             role TEXT NOT NULL,
             content TEXT NOT NULL,
             mode TEXT,
+            metadata TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         );
 

@@ -66,6 +66,10 @@ class ChatResponse(BaseModel):
     low_confidence_reason: Optional[str] = None
     # New: Depth metrics for multi-tool queries
     depth_metrics: Optional[Dict[str, Any]] = None
+    # Multi-agent routing information
+    multi_agent_routing: Optional[Dict[str, Any]] = None
+    # Agent execution details (which agent used which tools)
+    agent_executions: Optional[List[Dict[str, Any]]] = None
 
 
 class B2BEvaluationResponse(BaseModel):
@@ -180,6 +184,175 @@ async def health_check():
         "agent_initialized": agent is not None,
         "available_tools": agent.get_available_tools() if agent else []
     }
+
+
+def analyze_query_for_routing(query: str, tool_traces: list) -> Dict[str, Any]:
+    """
+    Analyze query to determine multi-agent routing information.
+    Maps query patterns to specialist agents.
+    """
+    query_lower = query.lower()
+    agents_used = []
+    routing_reasoning = []
+
+    # Company Research patterns
+    company_patterns = ["founded", "founder", "ceo", "headquarters", "hq", "products", "services", "who is", "about"]
+    if any(p in query_lower for p in company_patterns):
+        agents_used.append({
+            "agent": "company_research",
+            "display_name": "Company Research Agent",
+            "icon": "🏢",
+            "reason": "Query relates to company information, leadership, or background"
+        })
+        routing_reasoning.append("Detected company research intent")
+
+    # Financial Analyst patterns
+    financial_patterns = ["market cap", "revenue", "profit", "stock", "valuation", "p/e", "earnings", "financial", "price", "calculate", "growth"]
+    if any(p in query_lower for p in financial_patterns):
+        agents_used.append({
+            "agent": "financial_analyst",
+            "display_name": "Financial Analyst Agent",
+            "icon": "📊",
+            "reason": "Query involves financial metrics, calculations, or market data"
+        })
+        routing_reasoning.append("Detected financial analysis intent")
+
+    # Competitive Intelligence patterns
+    competitive_patterns = ["compare", "vs", "versus", "competitor", "alternative", "better", "difference", "pros and cons"]
+    if any(p in query_lower for p in competitive_patterns):
+        agents_used.append({
+            "agent": "competitive_intel",
+            "display_name": "Competitive Intel Agent",
+            "icon": "🔍",
+            "reason": "Query involves comparison or competitive analysis"
+        })
+        routing_reasoning.append("Detected competitive intelligence intent")
+
+    # Action Executor patterns
+    action_patterns = ["email", "calendar", "meeting", "schedule", "send", "inbox", "unread"]
+    if any(p in query_lower for p in action_patterns):
+        agents_used.append({
+            "agent": "action_executor",
+            "display_name": "Action Executor Agent",
+            "icon": "⚡",
+            "reason": "Query involves email or calendar actions"
+        })
+        routing_reasoning.append("Detected action/productivity intent")
+
+    # If no specific patterns matched, use General Fallback
+    if not agents_used:
+        agents_used.append({
+            "agent": "general_fallback",
+            "display_name": "General Assistant Agent",
+            "icon": "🤖",
+            "reason": "General query routed to flexible assistant"
+        })
+        routing_reasoning.append("No specific domain detected, using general assistant")
+
+    # Determine execution mode
+    execution_mode = "single_agent" if len(agents_used) == 1 else "multi_agent"
+    synthesis_strategy = "merge" if len(agents_used) > 1 else "direct"
+
+    return {
+        "mode": execution_mode,
+        "agents": agents_used,
+        "synthesis_strategy": synthesis_strategy,
+        "routing_reasoning": " → ".join(routing_reasoning),
+        "total_agents": len(agents_used)
+    }
+
+
+def generate_agent_executions(query: str, tool_traces: list) -> List[Dict[str, Any]]:
+    """
+    Generate agent execution details showing which tools each agent used.
+    """
+    # Tool to agent mapping
+    tool_agent_map = {
+        "web_search": ["company_research", "financial_analyst", "competitive_intel", "general_fallback"],
+        "wikipedia": ["company_research", "general_fallback"],
+        "calculator": ["financial_analyst", "action_executor", "general_fallback"],
+        "perplexity_search": ["financial_analyst", "competitive_intel", "general_fallback"],
+        "gmail": ["action_executor"],
+        "google_calendar": ["action_executor"]
+    }
+
+    agent_display_names = {
+        "company_research": ("Company Research Agent", "🏢"),
+        "financial_analyst": ("Financial Analyst Agent", "📊"),
+        "competitive_intel": ("Competitive Intel Agent", "🔍"),
+        "action_executor": ("Action Executor Agent", "⚡"),
+        "general_fallback": ("General Assistant Agent", "🤖")
+    }
+
+    # Group tools by their most likely agent based on query context
+    query_lower = query.lower()
+    agent_tools = {}
+
+    for trace in tool_traces:
+        tool_name = trace.tool_name
+        possible_agents = tool_agent_map.get(tool_name, ["general_fallback"])
+
+        # Determine most likely agent based on query
+        assigned_agent = "general_fallback"
+
+        if tool_name in ["gmail", "google_calendar"]:
+            assigned_agent = "action_executor"
+        elif tool_name == "calculator":
+            if any(p in query_lower for p in ["market cap", "revenue", "p/e", "calculate", "financial"]):
+                assigned_agent = "financial_analyst"
+            else:
+                assigned_agent = "general_fallback"
+        elif tool_name == "perplexity_search":
+            if any(p in query_lower for p in ["compare", "vs", "competitor"]):
+                assigned_agent = "competitive_intel"
+            elif any(p in query_lower for p in ["market", "revenue", "financial"]):
+                assigned_agent = "financial_analyst"
+            else:
+                assigned_agent = "general_fallback"
+        elif tool_name == "wikipedia":
+            if any(p in query_lower for p in ["founded", "ceo", "company", "who"]):
+                assigned_agent = "company_research"
+            else:
+                assigned_agent = "general_fallback"
+        elif tool_name == "web_search":
+            if any(p in query_lower for p in ["compare", "vs", "competitor"]):
+                assigned_agent = "competitive_intel"
+            elif any(p in query_lower for p in ["market cap", "stock", "revenue"]):
+                assigned_agent = "financial_analyst"
+            elif any(p in query_lower for p in ["founded", "ceo", "headquarters"]):
+                assigned_agent = "company_research"
+            else:
+                assigned_agent = "general_fallback"
+
+        if assigned_agent not in agent_tools:
+            agent_tools[assigned_agent] = []
+
+        agent_tools[assigned_agent].append({
+            "tool": tool_name,
+            "params": trace.params,
+            "status": trace.status.value,
+            "latency_ms": trace.latency_ms,
+            "reasoning": trace.llm_reasoning
+        })
+
+    # Convert to list format
+    executions = []
+    for agent_id, tools in agent_tools.items():
+        display_name, icon = agent_display_names.get(agent_id, ("Unknown Agent", "❓"))
+        total_latency = sum(t["latency_ms"] for t in tools)
+        success_count = sum(1 for t in tools if t["status"] == "success")
+
+        executions.append({
+            "agent_id": agent_id,
+            "display_name": display_name,
+            "icon": icon,
+            "tools_used": tools,
+            "tool_count": len(tools),
+            "total_latency_ms": total_latency,
+            "success_rate": success_count / len(tools) if tools else 0
+        })
+
+    return executions
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -297,6 +470,12 @@ Please provide a thorough, multi-faceted analysis using multiple tools:
             ]
         }
 
+    # Generate multi-agent routing information based on query analysis
+    multi_agent_routing = analyze_query_for_routing(request.message, tool_traces)
+
+    # Generate agent execution details
+    agent_executions = generate_agent_executions(request.message, tool_traces)
+
     return ChatResponse(
         answer=clean_answer,
         tool_calls=tool_calls_dict,
@@ -308,7 +487,9 @@ Please provide a thorough, multi-faceted analysis using multiple tools:
         execution_plan=execution_plan.to_dict() if execution_plan else None,
         low_confidence=low_confidence,
         low_confidence_reason=low_confidence_reason,
-        depth_metrics=depth_metrics
+        depth_metrics=depth_metrics,
+        multi_agent_routing=multi_agent_routing,
+        agent_executions=agent_executions
     )
 
 
@@ -452,6 +633,22 @@ async def list_b2b_evaluations():
             continue
 
     return {"evaluations": evaluations}
+
+
+@app.get("/api/b2b-evaluations/{run_id}")
+async def get_b2b_evaluation(run_id: str):
+    """Get detailed results for a specific B2B evaluation run."""
+    result_file = Path(f"data/results/{run_id}.json")
+
+    if not result_file.exists():
+        raise HTTPException(status_code=404, detail=f"Evaluation {run_id} not found")
+
+    try:
+        with open(result_file, 'r') as f:
+            data = json.load(f)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading evaluation: {str(e)}")
 
 
 @app.websocket("/ws/chat")

@@ -1,7 +1,8 @@
 """pass^k metric calculator using majority voting (consensus)."""
 
+import re
 from collections import Counter
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional, Union
 from dataclasses import dataclass
 
 
@@ -14,6 +15,270 @@ class PassKResult:
     consensus_strength: float  # Percentage of attempts that gave majority answer
     answer_distribution: Dict[str, int]  # All answers and their counts
     correct_answer: str
+
+
+class GroundTruthValidator:
+    """
+    Validates answers against ground truth using multiple validation types.
+
+    Supports 5 types:
+    - factual: Substring matching with must_contain/should_contain_any
+    - range: Numeric value within bounds
+    - list: Subset matching (min_matches items from expected list)
+    - comparison: Direction/comparison validation
+    - calculation: Exact numeric match with tolerance
+    """
+
+    @staticmethod
+    def validate(answer: str, ground_truth: Dict[str, Any]) -> bool:
+        """
+        Validate an answer against ground truth specification.
+
+        Args:
+            answer: The answer to validate
+            ground_truth: Ground truth dict with 'type' and 'validation' fields
+
+        Returns:
+            True if answer is valid, False otherwise
+        """
+        gt_type = ground_truth.get("type", "factual")
+        validation = ground_truth.get("validation", {})
+
+        if gt_type == "factual":
+            return GroundTruthValidator._validate_factual(answer, ground_truth, validation)
+        elif gt_type == "range":
+            return GroundTruthValidator._validate_range(answer, ground_truth, validation)
+        elif gt_type == "list":
+            return GroundTruthValidator._validate_list(answer, ground_truth, validation)
+        elif gt_type == "comparison":
+            return GroundTruthValidator._validate_comparison(answer, ground_truth, validation)
+        elif gt_type == "calculation":
+            return GroundTruthValidator._validate_calculation(answer, ground_truth, validation)
+        else:
+            # Fall back to simple substring match
+            return GroundTruthValidator._simple_match(answer, ground_truth.get("answer", ""))
+
+    @staticmethod
+    def _validate_factual(answer: str, ground_truth: Dict, validation: Dict) -> bool:
+        """Validate factual answers using must_contain/should_contain_any."""
+        answer_lower = answer.lower()
+
+        # Check must_contain - all items must be present
+        must_contain = validation.get("must_contain", [])
+        for required in must_contain:
+            if required.lower() not in answer_lower:
+                return False
+
+        # Check should_contain_any - at least one must be present
+        should_contain = validation.get("should_contain_any", [])
+        if should_contain:
+            found_any = any(item.lower() in answer_lower for item in should_contain)
+            if not found_any:
+                # Also check answer_variants as fallback
+                variants = ground_truth.get("answer_variants", [])
+                found_any = any(v.lower() in answer_lower for v in variants)
+            if not found_any:
+                return False
+
+        # Check should_contain_any_2 if present (for multi-part answers)
+        should_contain_2 = validation.get("should_contain_any_2", [])
+        if should_contain_2:
+            found_any = any(item.lower() in answer_lower for item in should_contain_2)
+            if not found_any:
+                return False
+
+        # Check min_names_required for name-based validation
+        min_names = validation.get("min_names_required", 0)
+        if min_names > 0:
+            valid_names = validation.get("valid_names", [])
+            found_count = sum(1 for name in valid_names if name.lower() in answer_lower)
+            if found_count < min_names:
+                return False
+
+        # Check positive/negative indicators
+        positive = validation.get("positive_indicators", [])
+        negative = validation.get("negative_indicators", [])
+        if positive or negative:
+            has_positive = any(ind.lower() in answer_lower for ind in positive) if positive else True
+            has_negative = any(ind.lower() in answer_lower for ind in negative) if negative else False
+            if has_negative or (positive and not has_positive):
+                return False
+
+        # If no validation rules specified, do simple match
+        if not must_contain and not should_contain and not should_contain_2 and min_names == 0:
+            return GroundTruthValidator._simple_match(answer, ground_truth.get("answer", ""))
+
+        return True
+
+    @staticmethod
+    def _validate_range(answer: str, ground_truth: Dict, validation: Dict) -> bool:
+        """Validate numeric range answers."""
+        # Extract number from answer
+        number = GroundTruthValidator._extract_number(answer, validation)
+        if number is None:
+            return False
+
+        # Get range bounds
+        numeric_range = validation.get("numeric_range", [])
+        if len(numeric_range) == 2:
+            min_val, max_val = numeric_range
+            return min_val <= number <= max_val
+
+        # Try range dict
+        range_spec = ground_truth.get("range", {})
+        if range_spec:
+            min_val = range_spec.get("min", float("-inf"))
+            max_val = range_spec.get("max", float("inf"))
+            unit = range_spec.get("unit", "")
+
+            # Normalize the extracted number based on unit
+            if unit == "trillion":
+                # Number might be extracted as trillions (e.g., "3.5")
+                # or raw (e.g., "3500000000000")
+                if number < 1000:  # Likely in trillion units
+                    return min_val <= number <= max_val
+                else:  # Raw number
+                    return min_val * 1e12 <= number <= max_val * 1e12
+            elif unit == "billion":
+                if number < 10000:  # Likely in billion units
+                    return min_val <= number <= max_val
+                else:  # Raw number
+                    return min_val * 1e9 <= number <= max_val * 1e9
+            else:
+                return min_val <= number <= max_val
+
+        return False
+
+    @staticmethod
+    def _validate_list(answer: str, ground_truth: Dict, validation: Dict) -> bool:
+        """Validate list answers (subset matching)."""
+        answer_lower = answer.lower()
+        expected_items = ground_truth.get("expected_items", [])
+        min_matches = validation.get("min_matches", 1)
+        case_insensitive = validation.get("case_insensitive", True)
+
+        if case_insensitive:
+            matches = sum(1 for item in expected_items if item.lower() in answer_lower)
+        else:
+            matches = sum(1 for item in expected_items if item in answer)
+
+        return matches >= min_matches
+
+    @staticmethod
+    def _validate_comparison(answer: str, ground_truth: Dict, validation: Dict) -> bool:
+        """Validate comparison/direction answers."""
+        answer_lower = answer.lower()
+
+        # Check for correct answers list
+        correct_answers = validation.get("correct_answers", [])
+        if correct_answers:
+            return any(ca.lower() in answer_lower for ca in correct_answers)
+
+        # Check positive/negative indicators (for direction)
+        direction = ground_truth.get("direction", "")
+        positive = validation.get("positive_indicators", [])
+        negative = validation.get("negative_indicators", [])
+
+        if positive and negative:
+            has_positive = any(ind.lower() in answer_lower for ind in positive)
+            has_negative = any(ind.lower() in answer_lower for ind in negative)
+
+            # For "grew" direction, positive should be present and negative absent
+            if direction.lower() in ["grew", "increased", "growth"]:
+                return has_positive and not has_negative
+            elif direction.lower() in ["declined", "decreased", "fell"]:
+                return has_negative and not has_positive
+
+        # Fallback to checking if direction keyword is in answer
+        if direction:
+            return direction.lower() in answer_lower
+
+        return False
+
+    @staticmethod
+    def _validate_calculation(answer: str, ground_truth: Dict, validation: Dict) -> bool:
+        """Validate exact calculation answers."""
+        # Extract number from answer
+        number = GroundTruthValidator._extract_number(answer, validation)
+        if number is None:
+            return False
+
+        exact_match = validation.get("exact_match")
+        if exact_match is None:
+            exact_match = ground_truth.get("exact_value")
+
+        if exact_match is None:
+            return False
+
+        tolerance = validation.get("tolerance", 0.01)
+        # Use slightly larger epsilon to handle floating-point precision issues
+        return abs(number - exact_match) <= tolerance + 1e-9
+
+    @staticmethod
+    def _extract_number(answer: str, validation: Dict) -> Optional[float]:
+        """Extract numeric value from answer string."""
+        answer_lower = answer.lower()
+
+        # Handle trillion notation
+        if validation.get("accept_trillion_notation", False):
+            # Match patterns like "$3.5 trillion", "3.5T", "3.5 trillion"
+            trillion_patterns = [
+                r'[\$]?([\d,]+\.?\d*)\s*trillion',
+                r'[\$]?([\d,]+\.?\d*)\s*t(?:rillion)?(?:\s|$)',
+            ]
+            for pattern in trillion_patterns:
+                match = re.search(pattern, answer_lower)
+                if match:
+                    num_str = match.group(1).replace(",", "")
+                    return float(num_str)
+
+        # Handle billion notation
+        if validation.get("accept_billion_notation", False):
+            billion_patterns = [
+                r'[\$]?([\d,]+\.?\d*)\s*billion',
+                r'[\$]?([\d,]+\.?\d*)\s*b(?:illion)?(?:\s|$)',
+            ]
+            for pattern in billion_patterns:
+                match = re.search(pattern, answer_lower)
+                if match:
+                    num_str = match.group(1).replace(",", "")
+                    return float(num_str)
+
+        # Handle percentage
+        if validation.get("accept_percentage_sign", False):
+            pct_match = re.search(r'([\d,]+\.?\d*)\s*%', answer)
+            if pct_match:
+                return float(pct_match.group(1).replace(",", ""))
+
+        # Extract any number
+        numbers = re.findall(r'[\d,]+\.?\d*', answer)
+        if numbers:
+            # Return the first substantial number
+            for num_str in numbers:
+                num_str = num_str.replace(",", "")
+                if num_str and num_str != ".":
+                    try:
+                        return float(num_str)
+                    except ValueError:
+                        continue
+
+        return None
+
+    @staticmethod
+    def _simple_match(answer: str, ground_truth_answer: str) -> bool:
+        """Simple substring matching fallback."""
+        answer_lower = answer.lower().strip()
+        gt_lower = ground_truth_answer.lower().strip()
+
+        # Exact match
+        if answer_lower == gt_lower:
+            return True
+
+        # Contains match
+        if gt_lower in answer_lower or answer_lower in gt_lower:
+            return True
+
+        return False
 
 
 class PassKCalculator:
@@ -36,7 +301,7 @@ class PassKCalculator:
     def calculate_pass_k(
         self,
         answers: List[str],
-        ground_truth: str,
+        ground_truth: Union[str, Dict[str, Any]],
         k: int,
         similarity_fn=None
     ) -> PassKResult:
@@ -45,7 +310,7 @@ class PassKCalculator:
 
         Args:
             answers: List of answers from k attempts
-            ground_truth: The correct answer
+            ground_truth: The correct answer (string) or ground truth dict with type/validation
             k: Number of attempts to consider (5 or 10)
             similarity_fn: Optional function to check if answer matches ground truth
                           (default: exact string match after normalization)
@@ -69,11 +334,20 @@ class PassKCalculator:
         # Calculate consensus strength
         consensus_strength = majority_count / k
 
+        # Get the original (non-normalized) majority answer for validation
+        original_majority = k_answers[normalized_answers.index(majority_answer)]
+
         # Check if majority answer is correct
         if similarity_fn is not None:
-            is_correct = similarity_fn(majority_answer, ground_truth)
+            is_correct = similarity_fn(original_majority, ground_truth)
+        elif isinstance(ground_truth, dict):
+            # Use GroundTruthValidator for dict-based ground truth
+            is_correct = GroundTruthValidator.validate(original_majority, ground_truth)
         else:
             is_correct = self._is_answer_correct(majority_answer, ground_truth)
+
+        # Extract answer string for result
+        correct_answer_str = ground_truth.get("answer", str(ground_truth)) if isinstance(ground_truth, dict) else ground_truth
 
         # Pass if: (1) majority is correct AND (2) meets consensus threshold
         passed = is_correct and (consensus_strength >= self.consensus_threshold)
@@ -84,13 +358,13 @@ class PassKCalculator:
             majority_answer=majority_answer,
             consensus_strength=consensus_strength,
             answer_distribution=dict(answer_counts),
-            correct_answer=ground_truth
+            correct_answer=correct_answer_str
         )
 
     def calculate_multi_k(
         self,
         answers: List[str],
-        ground_truth: str,
+        ground_truth: Union[str, Dict[str, Any]],
         k_values: List[int],
         similarity_fn=None
     ) -> Dict[int, PassKResult]:
@@ -99,7 +373,7 @@ class PassKCalculator:
 
         Args:
             answers: List of answers from all attempts
-            ground_truth: The correct answer
+            ground_truth: The correct answer (string) or ground truth dict
             k_values: List of k values to calculate (e.g., [5, 10])
             similarity_fn: Optional similarity function
 

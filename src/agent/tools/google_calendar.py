@@ -611,7 +611,29 @@ class GoogleCalendar:
         if not GOOGLE_API_AVAILABLE:
             return {
                 "success": False,
-                "error": "Google API not available. Install: pip install google-api-python-client google-auth-oauthlib"
+                "error": "Google API libraries not installed. This feature requires additional setup."
+            }
+
+        # Check if OAuth is configured before attempting authentication
+        if not os.path.exists(self.credentials_path):
+            return {
+                "success": False,
+                "error": (
+                    "Google Calendar integration is not configured. "
+                    "This feature requires Google OAuth setup which is not available in the demo. "
+                    "Please try other queries like company research or financial analysis."
+                )
+            }
+
+        # Check if we have a valid token (don't trigger auth flow)
+        if not self.is_authenticated():
+            return {
+                "success": False,
+                "error": (
+                    "Google Calendar authentication required. "
+                    "This feature requires Google OAuth which is not configured for public use. "
+                    "Please try other queries like company research or financial analysis."
+                )
             }
 
         if action == "list":

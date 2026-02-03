@@ -24,6 +24,14 @@ SYSTEM_PROMPT_NORMAL = """You are a casual, friendly research assistant. STRICT 
 5. One short paragraph only - no bullet points unless asked
 6. If uncertain, just say "Not sure, but..." briefly
 
+CRITICAL - RESPONSE LENGTH MANAGEMENT:
+- ALWAYS complete your response within the token limit
+- If you have extensive information, PRIORITIZE the most important points
+- NEVER start sentences you cannot finish
+- If comparing multiple items, summarize key differences concisely
+- Tables MUST be complete - if space is limited, use prose instead
+- End with a complete sentence, not mid-word or mid-row
+
 Example good response: "Apple's market cap is around $3 trillion as of late 2024, making it one of the world's most valuable companies."
 
 Example bad response: "That's a great question! Let me help you with that. Apple Inc., the technology company headquartered in Cupertino..." (too long, too formal)"""
@@ -39,7 +47,17 @@ Then provide comprehensive details with:
 - Multiple source perspectives
 - Relevant context and implications
 
-Be warm but professional. Cite sources inline."""
+Be warm but professional. Cite sources inline.
+
+CRITICAL - RESPONSE LENGTH MANAGEMENT:
+- ALWAYS ensure your response is COMPLETE within the token limit
+- Monitor response length - if approaching limit, WRAP UP with a conclusion
+- NEVER create tables you cannot finish - if comparing 5+ items, use concise prose
+- If space is limited, PRIORITIZE: summary > key facts > supporting details
+- NEVER end mid-sentence, mid-table-row, or mid-list
+- If you have more to say, end with "Key points covered above; ask for specifics if needed."
+- Tables are DANGEROUS for truncation - prefer bullet points for long comparisons
+- Max 3-4 table rows; for more items, use ranked prose summary"""
 
 def get_system_prompt(is_deep: bool) -> str:
     """Get appropriate system prompt based on research mode."""
@@ -442,10 +460,16 @@ class ClaudeLLMClient:
                 continue
 
             elif response.stop_reason == "max_tokens":
-                # Hit token limit
-                final_answer = self._extract_text_response(response) + "\n[Response truncated due to length]"
+                # Hit token limit - attempt recovery by asking Claude to summarize
+                truncated_response = self._extract_text_response(response)
+                recovered_answer = self._recover_from_truncation(
+                    truncated_response,
+                    user_message,
+                    messages,
+                    is_deep_mode
+                )
                 return (
-                    final_answer,
+                    recovered_answer,
                     tracer.get_traces() if tracer else [],
                     error_tracer.get_errors() if error_tracer else []
                 )
@@ -480,6 +504,102 @@ class ClaudeLLMClient:
             tracer.get_traces() if tracer else [],
             error_tracer.get_errors() if error_tracer else []
         )
+
+    def _recover_from_truncation(
+        self,
+        truncated_response: str,
+        original_question: str,
+        conversation_history: List[Dict[str, Any]],
+        is_deep_mode: bool
+    ) -> str:
+        """
+        Recover from a truncated response by asking Claude to summarize/complete it.
+
+        Args:
+            truncated_response: The truncated response text
+            original_question: The user's original question
+            conversation_history: Full conversation for context
+            is_deep_mode: Whether deep research mode is active
+
+        Returns:
+            A complete, non-truncated response
+        """
+        try:
+            # Create recovery prompt
+            if is_deep_mode:
+                recovery_prompt = f"""Your previous response was truncated. Here's what you wrote so far:
+
+---
+{truncated_response}
+---
+
+IMPORTANT: Provide a COMPLETE response to the original question that fits within the token limit.
+- Keep the summary under 100 words
+- Limit detailed analysis to 2-3 key points maximum
+- NO tables - use concise prose only
+- End with a complete sentence
+- If comparing items, pick top 3 most important differences
+
+Original question: {original_question}
+
+Provide your complete response now:"""
+            else:
+                recovery_prompt = f"""Your previous response was truncated. Rewrite it in 50-60 words maximum.
+
+Original question: {original_question}
+
+Truncated attempt: {truncated_response[:200]}...
+
+Provide a COMPLETE 50-60 word response:"""
+
+            # Call Claude without tools to get the recovered response
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=2048 if is_deep_mode else 512,  # More conservative limits
+                temperature=self.temperature,
+                system="You must provide a COMPLETE response. Never truncate. Prioritize completeness over comprehensiveness.",
+                messages=[{"role": "user", "content": recovery_prompt}]
+            )
+
+            recovered_text = self._extract_text_response(response)
+
+            # Check if recovery also got truncated
+            if response.stop_reason == "max_tokens":
+                # Second truncation - force a minimal summary
+                return self._force_minimal_summary(original_question, truncated_response)
+
+            return recovered_text
+
+        except Exception as e:
+            # If recovery fails, return truncated response with note
+            return f"{truncated_response}\n\n[Response was lengthy - key information above]"
+
+    def _force_minimal_summary(self, question: str, partial_content: str) -> str:
+        """
+        Force a minimal summary when even recovery attempts get truncated.
+
+        Args:
+            question: Original question
+            partial_content: Whatever content we managed to gather
+
+        Returns:
+            A very brief summary
+        """
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=256,  # Very conservative
+                temperature=0.3,
+                system="Respond in exactly 2-3 sentences. No tables, no lists.",
+                messages=[{
+                    "role": "user",
+                    "content": f"In 2-3 sentences only, answer: {question}\n\nContext from research: {partial_content[:500]}"
+                }]
+            )
+            return self._extract_text_response(response)
+        except Exception:
+            # Last resort - return what we have
+            return f"Based on research: {partial_content[:300]}..."
 
     def _synthesize_partial_answer(self, messages: List[Dict[str, Any]], original_question: str) -> str:
         """

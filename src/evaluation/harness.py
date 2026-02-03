@@ -181,12 +181,22 @@ class EvaluationHarness:
             all_answers.append(answer)
 
         # Calculate pass^k metrics
+        # Create a proper similarity function or pass None
+        if similarity_fn:
+            threshold = question.evaluation.get("correctness_threshold", 0.85)
+            pass_k_similarity_fn = lambda a, g: similarity_fn(a, g) >= threshold
+        else:
+            pass_k_similarity_fn = None
+
+        # Use full ground_truth dict if it has a 'type' field (new format)
+        # Otherwise fall back to string answer (old format)
+        ground_truth_for_pass_k = question.ground_truth if question.ground_truth.get("type") else ground_truth_answer
+
         pass_k_results = self.pass_k_calculator.calculate_multi_k(
             answers=all_answers,
-            ground_truth=ground_truth_answer,
+            ground_truth=ground_truth_for_pass_k,
             k_values=k_values,
-            similarity_fn=lambda a, g: similarity_fn(a, g) >= question.evaluation.get("correctness_threshold", 0.85)
-                                      if similarity_fn else None
+            similarity_fn=pass_k_similarity_fn
         )
 
         # Aggregate statistics

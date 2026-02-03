@@ -1,135 +1,16 @@
 {
   "metadata": {
-    "version": "1.0",
-    "created": "2024-01-28",
+    "version": "2.0",
+    "created": "2026-02-02",
     "total_questions": 20,
-    "categories": ["geography", "history", "science", "current_events"],
-    "description": "Evaluation dataset for research assistant agent with tool calling"
+    "categories": ["company_research", "financial_analysis", "competitive_intelligence", "customer_market", "standard_knowledge"],
+    "description": "B2B Account Intelligence evaluation dataset with 90% B2B-relevant questions"
   },
   "questions": [
     {
-      "id": "geo_001",
-      "question": "What is the population density of France in people per square kilometer?",
-      "category": "geography",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia", "calculator"],
-        "tool_order": "any",
-        "min_tools": 2,
-        "max_tools": 3
-      },
-      "ground_truth": {
-        "answer": "Approximately 104-105 people per square kilometer",
-        "answer_variants": [
-          "104 people per km²",
-          "105 people per square kilometer",
-          "~104 people/km²"
-        ],
-        "facts": {
-          "population": 67400000,
-          "area_km2": 643801,
-          "density": 104.69
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.85,
-        "must_cite_sources": true,
-        "allows_approximation": true
-      }
-    },
-    {
-      "id": "geo_002",
-      "question": "Which country has a larger land area: Brazil or Australia?",
-      "category": "geography",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 3
-      },
-      "ground_truth": {
-        "answer": "Brazil has a larger land area than Australia",
-        "answer_variants": [
-          "Brazil",
-          "Brazil is larger",
-          "Brazil has more land area"
-        ],
-        "facts": {
-          "brazil_area_km2": 8515767,
-          "australia_area_km2": 7692024
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.90,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "geo_003",
-      "question": "What is the combined population of Japan and South Korea?",
-      "category": "geography",
-      "difficulty": "medium",
-      "expected_behavior": {
-        "tools": ["wikipedia", "calculator"],
-        "tool_order": "any",
-        "min_tools": 2,
-        "max_tools": 4
-      },
-      "ground_truth": {
-        "answer": "Approximately 175-177 million people",
-        "answer_variants": [
-          "176 million",
-          "175-177 million",
-          "about 176 million people"
-        ],
-        "facts": {
-          "japan_population": 125000000,
-          "south_korea_population": 51000000,
-          "combined": 176000000
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.85,
-        "must_cite_sources": true,
-        "allows_approximation": true
-      }
-    },
-    {
-      "id": "geo_004",
-      "question": "How many times larger is Russia's land area compared to Germany?",
-      "category": "geography",
-      "difficulty": "medium",
-      "expected_behavior": {
-        "tools": ["wikipedia", "calculator"],
-        "tool_order": "any",
-        "min_tools": 2,
-        "max_tools": 3
-      },
-      "ground_truth": {
-        "answer": "Russia is approximately 48 times larger than Germany",
-        "answer_variants": [
-          "48 times",
-          "about 48 times larger",
-          "approximately 48x"
-        ],
-        "facts": {
-          "russia_area_km2": 17098242,
-          "germany_area_km2": 357022,
-          "ratio": 47.88
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.85,
-        "must_cite_sources": true,
-        "allows_approximation": true
-      }
-    },
-    {
-      "id": "geo_005",
-      "question": "What is the approximate distance between New York City and Los Angeles in kilometers?",
-      "category": "geography",
+      "id": "C1",
+      "question": "When was Stripe founded and who are the founders?",
+      "category": "company_research",
       "difficulty": "easy",
       "expected_behavior": {
         "tools": ["web_search", "wikipedia"],
@@ -138,14 +19,169 @@
         "max_tools": 2
       },
       "ground_truth": {
-        "answer": "Approximately 3,900-4,000 kilometers",
+        "type": "factual",
+        "answer": "Stripe was founded in 2010 by Patrick and John Collison",
         "answer_variants": [
-          "3900 km",
-          "4000 kilometers",
-          "about 3944 km"
+          "2010",
+          "Collison brothers",
+          "Patrick Collison",
+          "John Collison"
         ],
-        "facts": {
-          "distance_km": 3944
+        "validation": {
+          "must_contain": ["2010"],
+          "should_contain_any": ["Patrick", "John", "Collison"]
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "C2",
+      "question": "What is Salesforce's primary business model and who is the CEO?",
+      "category": "company_research",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "type": "factual",
+        "answer": "Salesforce's primary business is SaaS CRM software, CEO is Marc Benioff",
+        "answer_variants": [
+          "SaaS",
+          "CRM",
+          "customer relationship management",
+          "Marc Benioff",
+          "Benioff"
+        ],
+        "validation": {
+          "should_contain_any": ["SaaS", "CRM", "cloud", "software"],
+          "should_contain_any_2": ["Marc Benioff", "Benioff"]
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.80,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "C3",
+      "question": "List the top 3 products that Snowflake offers",
+      "category": "company_research",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "type": "list",
+        "answer": "Snowflake offers Data Cloud, Data Warehouse, Data Lake, Data Sharing, and Snowpark",
+        "expected_items": ["data warehouse", "data lake", "data cloud", "data sharing", "snowpark", "marketplace"],
+        "validation": {
+          "min_matches": 2,
+          "case_insensitive": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.75,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "C4",
+      "question": "What is Tesla's headquarters location and when did they move there?",
+      "category": "company_research",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "type": "factual",
+        "answer": "Tesla's headquarters is in Austin, Texas, they moved there in 2021",
+        "answer_variants": [
+          "Austin",
+          "Texas",
+          "Austin, TX",
+          "2021"
+        ],
+        "validation": {
+          "must_contain": ["Austin"],
+          "should_contain_any": ["Texas", "TX", "2021"]
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.85,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "C5",
+      "question": "Who are the co-founders of Airbnb and what were their backgrounds?",
+      "category": "company_research",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search", "wikipedia"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "type": "factual",
+        "answer": "Brian Chesky, Joe Gebbia, and Nathan Blecharczyk founded Airbnb. Chesky and Gebbia are designers, Blecharczyk is an engineer.",
+        "answer_variants": [
+          "Brian Chesky",
+          "Joe Gebbia",
+          "Nathan Blecharczyk",
+          "Chesky",
+          "Gebbia",
+          "Blecharczyk"
+        ],
+        "validation": {
+          "min_names_required": 2,
+          "valid_names": ["Brian Chesky", "Chesky", "Joe Gebbia", "Gebbia", "Nathan Blecharczyk", "Blecharczyk"]
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.80,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "F1",
+      "question": "What is Apple's approximate market cap in 2024?",
+      "category": "financial_analysis",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "type": "range",
+        "answer": "Apple's market cap is approximately $2.5-3.5 trillion",
+        "range": {
+          "min": 2.5,
+          "max": 4.0,
+          "unit": "trillion"
+        },
+        "validation": {
+          "numeric_range": [2500000000000, 4000000000000],
+          "accept_trillion_notation": true
         }
       },
       "evaluation": {
@@ -155,228 +191,75 @@
       }
     },
     {
-      "id": "hist_001",
-      "question": "How many years passed between the first moon landing and the fall of the Berlin Wall?",
-      "category": "history",
+      "id": "F2",
+      "question": "Did NVIDIA's revenue grow or decline in 2023 vs 2022?",
+      "category": "financial_analysis",
       "difficulty": "medium",
       "expected_behavior": {
-        "tools": ["wikipedia", "calculator"],
-        "tool_order": "any",
-        "min_tools": 2,
-        "max_tools": 3
-      },
-      "ground_truth": {
-        "answer": "20 years",
-        "answer_variants": [
-          "20 years",
-          "twenty years",
-          "2 decades"
-        ],
-        "facts": {
-          "moon_landing_year": 1969,
-          "berlin_wall_fall_year": 1989,
-          "difference": 20
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "hist_002",
-      "question": "Who was the president of the United States when World War II ended?",
-      "category": "history",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia"],
+        "tools": ["web_search", "perplexity_search"],
         "tool_order": "any",
         "min_tools": 1,
         "max_tools": 2
       },
       "ground_truth": {
-        "answer": "Harry S. Truman",
-        "answer_variants": [
-          "Harry Truman",
-          "Truman",
-          "Harry S Truman"
-        ],
-        "facts": {
-          "president": "Harry S. Truman",
-          "ww2_end_year": 1945
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "hist_003",
-      "question": "In what year did the Soviet Union dissolve?",
-      "category": "history",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 2
-      },
-      "ground_truth": {
-        "answer": "1991",
-        "answer_variants": [
-          "1991",
-          "December 1991",
-          "December 26, 1991"
-        ],
-        "facts": {
-          "dissolution_year": 1991
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "hist_004",
-      "question": "How old was Albert Einstein when he published his theory of general relativity?",
-      "category": "history",
-      "difficulty": "medium",
-      "expected_behavior": {
-        "tools": ["wikipedia", "calculator"],
-        "tool_order": "any",
-        "min_tools": 2,
-        "max_tools": 3
-      },
-      "ground_truth": {
-        "answer": "36 years old",
-        "answer_variants": [
-          "36",
-          "36 years old",
-          "thirty-six"
-        ],
-        "facts": {
-          "einstein_birth_year": 1879,
-          "general_relativity_year": 1915,
-          "age": 36
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "hist_005",
-      "question": "Which came first: the invention of the telephone or the light bulb?",
-      "category": "history",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 2
-      },
-      "ground_truth": {
-        "answer": "The telephone was invented first (1876 vs 1879)",
-        "answer_variants": [
-          "telephone",
-          "the telephone",
-          "telephone came first"
-        ],
-        "facts": {
-          "telephone_year": 1876,
-          "light_bulb_year": 1879
+        "type": "comparison",
+        "answer": "NVIDIA's revenue grew significantly in 2023 compared to 2022",
+        "direction": "grew",
+        "validation": {
+          "positive_indicators": ["grew", "increased", "growth", "higher", "up", "rose", "surged", "doubled", "tripled"],
+          "negative_indicators": ["declined", "decreased", "fell", "dropped", "lower", "down"]
         }
       },
       "evaluation": {
         "correctness_threshold": 0.90,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "sci_001",
-      "question": "What is the speed of light in meters per second?",
-      "category": "science",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 2
-      },
-      "ground_truth": {
-        "answer": "299,792,458 meters per second",
-        "answer_variants": [
-          "299792458 m/s",
-          "approximately 300 million meters per second",
-          "about 3 × 10^8 m/s"
-        ],
-        "facts": {
-          "speed_of_light_ms": 299792458
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.85,
-        "must_cite_sources": true,
+        "must_cite_sources": false,
         "allows_approximation": true
       }
     },
     {
-      "id": "sci_002",
-      "question": "How many planets in our solar system are larger than Earth?",
-      "category": "science",
-      "difficulty": "easy",
+      "id": "F3",
+      "question": "Compare Microsoft and Google's annual revenue - which is larger?",
+      "category": "financial_analysis",
+      "difficulty": "medium",
       "expected_behavior": {
-        "tools": ["wikipedia"],
+        "tools": ["web_search", "calculator"],
         "tool_order": "any",
         "min_tools": 1,
-        "max_tools": 2
+        "max_tools": 3
       },
       "ground_truth": {
-        "answer": "4 planets (Jupiter, Saturn, Uranus, Neptune)",
-        "answer_variants": [
-          "4",
-          "four",
-          "4 planets"
-        ],
-        "facts": {
-          "count": 4,
-          "planets": ["Jupiter", "Saturn", "Uranus", "Neptune"]
+        "type": "comparison",
+        "answer": "Microsoft has larger annual revenue than Google/Alphabet",
+        "direction": "Microsoft larger",
+        "validation": {
+          "correct_answers": ["Microsoft", "Microsoft is larger", "Microsoft has larger", "Microsoft's is larger"]
         }
       },
       "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
+        "correctness_threshold": 0.90,
+        "must_cite_sources": false,
         "allows_approximation": false
       }
     },
     {
-      "id": "sci_003",
-      "question": "What is the boiling point of water in Fahrenheit at sea level?",
-      "category": "science",
+      "id": "F4",
+      "question": "Calculate the P/E ratio for a stock priced at $200 with EPS of $8",
+      "category": "financial_analysis",
       "difficulty": "easy",
       "expected_behavior": {
-        "tools": ["wikipedia", "calculator"],
+        "tools": ["calculator"],
         "tool_order": "any",
         "min_tools": 1,
-        "max_tools": 2
+        "max_tools": 1
       },
       "ground_truth": {
-        "answer": "212 degrees Fahrenheit",
-        "answer_variants": [
-          "212°F",
-          "212 degrees Fahrenheit",
-          "212F"
-        ],
-        "facts": {
-          "boiling_point_f": 212
+        "type": "calculation",
+        "answer": "25",
+        "exact_value": 25,
+        "formula": "P/E = Price / EPS = 200 / 8 = 25",
+        "validation": {
+          "exact_match": 25,
+          "tolerance": 0.01
         }
       },
       "evaluation": {
@@ -386,202 +269,299 @@
       }
     },
     {
-      "id": "sci_004",
-      "question": "What percentage of Earth's atmosphere is nitrogen?",
-      "category": "science",
+      "id": "F5",
+      "question": "What was Amazon's approximate revenue in 2023?",
+      "category": "financial_analysis",
+      "difficulty": "hard",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "type": "range",
+        "answer": "Amazon's 2023 revenue was approximately $575 billion",
+        "range": {
+          "min": 500,
+          "max": 650,
+          "unit": "billion"
+        },
+        "validation": {
+          "numeric_range": [500000000000, 650000000000],
+          "accept_billion_notation": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.80,
+        "must_cite_sources": false,
+        "allows_approximation": true
+      }
+    },
+    {
+      "id": "CI1",
+      "question": "Who are Stripe's top 3 competitors in payment processing?",
+      "category": "competitive_intelligence",
       "difficulty": "medium",
       "expected_behavior": {
-        "tools": ["wikipedia"],
+        "tools": ["web_search", "perplexity_search"],
         "tool_order": "any",
         "min_tools": 1,
         "max_tools": 2
       },
       "ground_truth": {
-        "answer": "Approximately 78%",
-        "answer_variants": [
-          "78%",
-          "about 78 percent",
-          "roughly 78%"
-        ],
-        "facts": {
-          "nitrogen_percentage": 78.08
+        "type": "list",
+        "answer": "PayPal, Square (Block), Adyen, Braintree",
+        "expected_items": ["PayPal", "Square", "Block", "Adyen", "Braintree", "Worldpay", "Checkout.com"],
+        "validation": {
+          "min_matches": 2,
+          "case_insensitive": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.75,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "CI2",
+      "question": "Has Salesforce made any major acquisitions in the last 5 years?",
+      "category": "competitive_intelligence",
+      "difficulty": "hard",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "type": "list",
+        "answer": "Salesforce acquired Slack (2021), Tableau (2019), MuleSoft (2018)",
+        "expected_items": ["Slack", "Tableau", "MuleSoft", "Demandware", "ExactTarget"],
+        "validation": {
+          "min_matches": 1,
+          "case_insensitive": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.75,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "CI3",
+      "question": "Compare AWS vs Google Cloud - which has larger market share?",
+      "category": "competitive_intelligence",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "type": "comparison",
+        "answer": "AWS has larger market share than Google Cloud",
+        "direction": "AWS larger",
+        "validation": {
+          "correct_answers": ["AWS", "Amazon", "AWS is larger", "AWS has larger", "Amazon Web Services"]
         }
       },
       "evaluation": {
         "correctness_threshold": 0.90,
-        "must_cite_sources": true,
-        "allows_approximation": true
-      }
-    },
-    {
-      "id": "sci_005",
-      "question": "How many bones are in the adult human body?",
-      "category": "science",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 2
-      },
-      "ground_truth": {
-        "answer": "206 bones",
-        "answer_variants": [
-          "206",
-          "206 bones",
-          "two hundred six"
-        ],
-        "facts": {
-          "bone_count": 206
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
+        "must_cite_sources": false,
         "allows_approximation": false
       }
     },
     {
-      "id": "curr_001",
-      "question": "Who won the FIFA World Cup in 2022?",
-      "category": "current_events",
-      "difficulty": "easy",
+      "id": "CI4",
+      "question": "Name 3 major enterprise customers of Snowflake",
+      "category": "competitive_intelligence",
+      "difficulty": "hard",
       "expected_behavior": {
-        "tools": ["web_search", "wikipedia"],
+        "tools": ["web_search", "perplexity_search"],
         "tool_order": "any",
         "min_tools": 1,
-        "max_tools": 2
+        "max_tools": 3
       },
       "ground_truth": {
-        "answer": "Argentina",
-        "answer_variants": [
-          "Argentina",
-          "Argentine national team",
-          "Argentina won"
-        ],
-        "facts": {
-          "winner": "Argentina",
-          "year": 2022
+        "type": "list",
+        "answer": "Known Snowflake customers include Capital One, Adobe, Instacart, DoorDash, Square, JetBlue",
+        "expected_items": ["Capital One", "Adobe", "Instacart", "DoorDash", "Square", "JetBlue", "NBC Universal", "Office Depot", "Western Union", "Kraft Heinz", "McKesson"],
+        "validation": {
+          "min_matches": 2,
+          "case_insensitive": true
         }
       },
       "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
         "allows_approximation": false
       }
     },
     {
-      "id": "curr_002",
-      "question": "In what year did the COVID-19 pandemic begin?",
-      "category": "current_events",
-      "difficulty": "easy",
+      "id": "CM1",
+      "question": "Who are some major enterprise customers of Datadog?",
+      "category": "customer_market",
+      "difficulty": "medium",
       "expected_behavior": {
-        "tools": ["wikipedia"],
+        "tools": ["web_search", "perplexity_search"],
         "tool_order": "any",
         "min_tools": 1,
         "max_tools": 2
       },
       "ground_truth": {
-        "answer": "2019 (officially declared pandemic in March 2020)",
+        "type": "list",
+        "answer": "Datadog customers include Samsung, Peloton, Whole Foods, 21st Century Fox, Airbnb",
+        "expected_items": ["Samsung", "Peloton", "Whole Foods", "21st Century Fox", "Airbnb", "Spotify", "Zendesk", "PagerDuty", "Nintendo", "EA", "Comcast"],
+        "validation": {
+          "min_matches": 1,
+          "case_insensitive": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "CM2",
+      "question": "What industry sectors does Palantir primarily serve?",
+      "category": "customer_market",
+      "difficulty": "medium",
+      "expected_behavior": {
+        "tools": ["web_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "type": "list",
+        "answer": "Palantir primarily serves government, defense, finance, and healthcare sectors",
+        "expected_items": ["government", "defense", "military", "finance", "financial", "healthcare", "health", "intelligence", "security"],
+        "validation": {
+          "min_matches": 2,
+          "case_insensitive": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.75,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "CM3",
+      "question": "Which companies use Snowflake for their data warehouse?",
+      "category": "customer_market",
+      "difficulty": "hard",
+      "expected_behavior": {
+        "tools": ["web_search", "perplexity_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 3
+      },
+      "ground_truth": {
+        "type": "list",
+        "answer": "Companies using Snowflake include Capital One, Adobe, DoorDash, Instacart, and many Fortune 500 companies",
+        "expected_items": ["Capital One", "Adobe", "DoorDash", "Instacart", "Square", "JetBlue", "NBC Universal", "Office Depot", "Western Union", "Kraft Heinz", "McKesson", "Albertsons"],
+        "validation": {
+          "min_matches": 1,
+          "case_insensitive": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "CM4",
+      "question": "What is Shopify's target market - SMB or Enterprise?",
+      "category": "customer_market",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["web_search"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 2
+      },
+      "ground_truth": {
+        "type": "factual",
+        "answer": "Shopify primarily targets SMBs (small and medium businesses)",
         "answer_variants": [
-          "2019",
-          "2020",
-          "late 2019"
+          "SMB",
+          "small business",
+          "medium business",
+          "small and medium"
         ],
-        "facts": {
-          "first_cases_year": 2019,
-          "pandemic_declared_year": 2020
+        "validation": {
+          "positive_indicators": ["SMB", "small", "medium", "small business", "small and medium"],
+          "negative_indicators": ["enterprise only", "only enterprise", "primarily enterprise"]
         }
       },
       "evaluation": {
         "correctness_threshold": 0.85,
-        "must_cite_sources": true,
-        "allows_approximation": true
-      }
-    },
-    {
-      "id": "curr_003",
-      "question": "Who is the current Secretary-General of the United Nations?",
-      "category": "current_events",
-      "difficulty": "medium",
-      "expected_behavior": {
-        "tools": ["web_search", "wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 2
-      },
-      "ground_truth": {
-        "answer": "António Guterres",
-        "answer_variants": [
-          "António Guterres",
-          "Antonio Guterres",
-          "Guterres"
-        ],
-        "facts": {
-          "name": "António Guterres",
-          "took_office": 2017
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
+        "must_cite_sources": false,
         "allows_approximation": false
       }
     },
     {
-      "id": "curr_004",
-      "question": "What year did the United Kingdom officially leave the European Union (Brexit)?",
-      "category": "current_events",
+      "id": "S1",
+      "question": "Calculate the profit margin if revenue is $80M and profit is $12M",
+      "category": "standard_knowledge",
+      "difficulty": "easy",
+      "expected_behavior": {
+        "tools": ["calculator"],
+        "tool_order": "any",
+        "min_tools": 1,
+        "max_tools": 1
+      },
+      "ground_truth": {
+        "type": "calculation",
+        "answer": "15%",
+        "exact_value": 15,
+        "formula": "Profit Margin = (Profit / Revenue) * 100 = (12 / 80) * 100 = 15%",
+        "validation": {
+          "exact_match": 15,
+          "tolerance": 0.1,
+          "accept_percentage_sign": true
+        }
+      },
+      "evaluation": {
+        "correctness_threshold": 0.95,
+        "must_cite_sources": false,
+        "allows_approximation": false
+      }
+    },
+    {
+      "id": "S2",
+      "question": "What is the capital of Australia?",
+      "category": "standard_knowledge",
       "difficulty": "easy",
       "expected_behavior": {
         "tools": ["wikipedia"],
         "tool_order": "any",
         "min_tools": 1,
-        "max_tools": 2
+        "max_tools": 1
       },
       "ground_truth": {
-        "answer": "2020 (January 31, 2020)",
+        "type": "factual",
+        "answer": "Canberra",
         "answer_variants": [
-          "2020",
-          "January 2020",
-          "2020"
+          "Canberra"
         ],
-        "facts": {
-          "brexit_year": 2020
+        "validation": {
+          "must_contain": ["Canberra"]
         }
       },
       "evaluation": {
         "correctness_threshold": 0.95,
-        "must_cite_sources": true,
-        "allows_approximation": false
-      }
-    },
-    {
-      "id": "curr_005",
-      "question": "Which company launched the ChatGPT AI assistant?",
-      "category": "current_events",
-      "difficulty": "easy",
-      "expected_behavior": {
-        "tools": ["web_search", "wikipedia"],
-        "tool_order": "any",
-        "min_tools": 1,
-        "max_tools": 2
-      },
-      "ground_truth": {
-        "answer": "OpenAI",
-        "answer_variants": [
-          "OpenAI",
-          "Open AI",
-          "OpenAI Inc."
-        ],
-        "facts": {
-          "company": "OpenAI",
-          "launch_year": 2022
-        }
-      },
-      "evaluation": {
-        "correctness_threshold": 0.95,
-        "must_cite_sources": true,
+        "must_cite_sources": false,
         "allows_approximation": false
       }
     }

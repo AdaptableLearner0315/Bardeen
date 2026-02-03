@@ -1,12 +1,12 @@
 {
   "metadata": {
-    "version": "3.1",
+    "version": "3.0",
     "created": "2026-02-02",
     "updated": "2026-02-02",
-    "total_questions": 19,
-    "avg_expected_depth": 4.7,
-    "categories": ["company_research", "financial_analysis", "competitive_intelligence", "strategic_reasoning"],
-    "description": "Enhanced B2B dataset with multi-step reasoning - 19 questions across 4 categories including strategic reasoning and causal analysis"
+    "total_questions": 20,
+    "avg_expected_depth": 4.6,
+    "categories": ["company_research", "financial_analysis", "competitive_intelligence", "action_execution"],
+    "description": "Enhanced B2B dataset with multi-step reasoning trajectories - 20 questions requiring 3-7 step reasoning chains"
   },
   "questions": [
     {
@@ -745,209 +745,245 @@
       }
     },
     {
-      "id": "sr_001",
-      "question": "If a company like Stripe acquires a payment infrastructure provider in Latin America, analyze: (1) What market gap does this fill? (2) What are the 3 biggest risks? (3) What alternative growth strategies could achieve similar goals with less capital?",
-      "category": "strategic_reasoning",
+      "id": "ae_001",
+      "question": "Summarize my unread emails from the past week, then calculate the daily average. Compare this to my meeting count per day this week from my calendar. Do I have an email-to-meeting imbalance?",
+      "category": "action_execution",
       "difficulty": "hard",
       "reasoning_trajectory": {
         "expected_steps": 5,
         "step_descriptions": [
-          "Research Stripe's current geographic coverage and Latin America market gap",
-          "Research payment infrastructure acquisition risks in Latin America",
-          "Identify top 3 risks: regulatory complexity, currency volatility, local competition",
-          "Research alternative growth strategies: partnerships, licensing, organic expansion",
-          "Compare M&A vs alternatives across capital, speed, control dimensions"
+          "Query Gmail for unread emails from past 7 days (get count + summary)",
+          "Calculate daily email average (email_count / 7)",
+          "Query Google Calendar for meetings this week (get count)",
+          "Calculate daily meeting average (meeting_count / 7)",
+          "Compare ratios and assess communication imbalance"
+        ],
+        "requires_synthesis": true,
+        "requires_calculation": true,
+        "reasoning_pattern": "multi-source_data_aggregation_with_ratio_analysis"
+      },
+      "expected_behavior": {
+        "tools": ["gmail", "calculator", "google_calendar"],
+        "tool_order": "sequential",
+        "min_tools": 4,
+        "max_tools": 5,
+        "depth_target": 5
+      },
+      "ground_truth": {
+        "answer": "If email volume significantly exceeds meeting count (e.g., 50+ emails/day vs 3-4 meetings/day), this indicates an email-heavy communication pattern. Balanced communication typically shows 10-15 emails per meeting. Authentication required if tools are not configured.",
+        "answer_variants": [
+          "email summary",
+          "daily average",
+          "meeting count",
+          "communication imbalance",
+          "authentication required"
+        ],
+        "must_include": ["emails", "meetings", "average", "comparison"],
+        "facts": {
+          "requires_authentication": true,
+          "calculation_type": "ratio_analysis",
+          "balance_threshold": "10-15 emails per meeting"
+        }
+      },
+      "evaluation": {
+        "criteria": "Must attempt to access Gmail for email count/summary, calculate daily average, access Calendar for meeting count, calculate meeting average, and provide imbalance assessment. If authentication fails, must clearly indicate this.",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true,
+        "depth_bonus": true
+      }
+    },
+    {
+      "id": "ae_002",
+      "question": "Analyze my calendar for this week. Calculate total meeting hours, then identify the longest consecutive block of free time. Is this block sufficient for deep work (4+ hours)?",
+      "category": "action_execution",
+      "difficulty": "hard",
+      "reasoning_trajectory": {
+        "expected_steps": 4,
+        "step_descriptions": [
+          "Query Google Calendar for all meetings this week with durations",
+          "Calculate sum of all meeting hours",
+          "Analyze gaps between meetings to find longest consecutive free block",
+          "Compare longest block to deep work threshold (4 hours)"
+        ],
+        "requires_synthesis": true,
+        "requires_calculation": true,
+        "reasoning_pattern": "calendar_analysis_with_time_block_optimization"
+      },
+      "expected_behavior": {
+        "tools": ["google_calendar", "calculator"],
+        "tool_order": "sequential",
+        "min_tools": 2,
+        "max_tools": 4,
+        "depth_target": 4
+      },
+      "ground_truth": {
+        "answer": "Authentication required to access calendar. If accessible, calculate total meeting hours, identify gaps, and find longest consecutive free block. Compare to 4-hour threshold: if longest block ≥ 4 hours, sufficient for deep work; if < 4 hours, calendar is too fragmented.",
+        "answer_variants": [
+          "total meeting hours",
+          "longest free block",
+          "4+ hours threshold",
+          "deep work assessment",
+          "authentication required"
+        ],
+        "must_include": ["meeting hours", "free time", "deep work"],
+        "facts": {
+          "requires_authentication": true,
+          "deep_work_threshold": "4 hours",
+          "calculation_type": "time aggregation and gap analysis"
+        }
+      },
+      "evaluation": {
+        "criteria": "Must attempt calendar access, calculate total meeting hours, identify longest free block, and assess against 4-hour threshold. If authentication fails, must indicate this clearly.",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true,
+        "depth_bonus": true
+      }
+    },
+    {
+      "id": "ae_003",
+      "question": "Search my emails from the last 2 weeks for messages containing 'urgent', 'deadline', or 'ASAP'. Count how many are from external senders vs internal. Which requires more immediate attention?",
+      "category": "action_execution",
+      "difficulty": "medium-hard",
+      "reasoning_trajectory": {
+        "expected_steps": 4,
+        "step_descriptions": [
+          "Query Gmail with search: 'urgent OR deadline OR ASAP' for last 14 days",
+          "Classify each email: internal (company domain) vs external",
+          "Count external vs internal emails",
+          "Prioritize: external emails (customers/partners) typically need faster response"
+        ],
+        "requires_synthesis": true,
+        "requires_calculation": true,
+        "reasoning_pattern": "email_filtering_with_sender_classification_and_prioritization"
+      },
+      "expected_behavior": {
+        "tools": ["gmail", "calculator"],
+        "tool_order": "sequential",
+        "min_tools": 2,
+        "max_tools": 3,
+        "depth_target": 4
+      },
+      "ground_truth": {
+        "answer": "Authentication required. If accessible, search for urgent keywords, classify senders. Typically, if >60% are external, prioritize customer/partner communications. Internal urgent requests can often be clarified internally.",
+        "answer_variants": [
+          "urgent email search",
+          "external vs internal count",
+          "prioritization guidance",
+          "authentication required"
+        ],
+        "must_include": ["urgent", "deadline", "external", "internal"],
+        "facts": {
+          "requires_authentication": true,
+          "search_keywords": ["urgent", "deadline", "ASAP"],
+          "time_window": "14 days",
+          "prioritization_rule": "external >60% → prioritize customer comms"
+        }
+      },
+      "evaluation": {
+        "criteria": "Must attempt Gmail search with correct keywords and time window, classify by sender type, and provide prioritization recommendation. If authentication fails, indicate clearly.",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true,
+        "depth_bonus": true
+      }
+    },
+    {
+      "id": "ae_004",
+      "question": "I have a meeting tomorrow at 2pm. Check if I have any free time blocks of 30+ minutes before then today. If yes, suggest the best time slot for meeting prep.",
+      "category": "action_execution",
+      "difficulty": "medium",
+      "reasoning_trajectory": {
+        "expected_steps": 3,
+        "step_descriptions": [
+          "Query Google Calendar for all meetings today",
+          "Identify gaps between meetings that are ≥30 minutes",
+          "Recommend latest available slot (closer to meeting time = fresher context)"
         ],
         "requires_synthesis": true,
         "requires_calculation": false,
-        "reasoning_pattern": "causal_analysis_with_alternative_generation"
+        "reasoning_pattern": "calendar_gap_analysis_with_temporal_optimization"
       },
       "expected_behavior": {
-        "tools": ["perplexity_search"],
+        "tools": ["google_calendar"],
+        "tool_order": "sequential",
+        "min_tools": 1,
+        "max_tools": 2,
+        "depth_target": 3
+      },
+      "ground_truth": {
+        "answer": "Authentication required. If accessible, find free blocks ≥30 minutes today before EOD. Recommend the latest available slot (e.g., 4-4:30pm rather than 10-10:30am) for fresher context closer to tomorrow's 2pm meeting.",
+        "answer_variants": [
+          "free time blocks",
+          "30+ minutes",
+          "meeting prep slot",
+          "latest slot recommended",
+          "authentication required"
+        ],
+        "must_include": ["free time", "30 minutes", "meeting prep"],
+        "facts": {
+          "requires_authentication": true,
+          "minimum_duration": "30 minutes",
+          "optimization_strategy": "latest slot = fresher context"
+        }
+      },
+      "evaluation": {
+        "criteria": "Must attempt calendar access, identify free blocks ≥30 minutes, and recommend optimal slot with reasoning. If authentication fails, indicate clearly.",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
+        "allows_approximation": true,
+        "depth_bonus": true
+      }
+    },
+    {
+      "id": "ae_005",
+      "question": "Calculate my 'communication load': sum of (unread emails × 2 minutes) + (meetings this week × average 60 minutes). Compare to a 40-hour work week. What percentage of my time is communication?",
+      "category": "action_execution",
+      "difficulty": "medium-hard",
+      "reasoning_trajectory": {
+        "expected_steps": 5,
+        "step_descriptions": [
+          "Query Gmail for unread email count",
+          "Calculate email time: email_count × 2 minutes, convert to hours",
+          "Query Google Calendar for meeting count this week",
+          "Calculate meeting time: meeting_count × 60 minutes, convert to hours",
+          "Calculate percentage: (email_hours + meeting_hours) / 40 * 100"
+        ],
+        "requires_synthesis": true,
+        "requires_calculation": true,
+        "reasoning_pattern": "multi-source_weighted_calculation_with_time_budget_analysis"
+      },
+      "expected_behavior": {
+        "tools": ["gmail", "calculator", "google_calendar"],
         "tool_order": "sequential",
         "min_tools": 3,
         "max_tools": 5,
         "depth_target": 5
       },
       "ground_truth": {
-        "answer": "Stripe has limited Latin American presence, so an acquisition fills the local payment infrastructure gap (market: $200B+ by 2025). Top 3 risks: (1) Regulatory fragmentation across 20+ countries with different payment rules, (2) Currency volatility in markets like Argentina/Brazil affecting revenue stability, (3) Entrenched local competitors (MercadoPago, PagSeguro) with better local knowledge. Alternatives: Strategic partnerships with local banks (lower capital, slower), licensing technology to regional players (less control), or organic expansion (5-10 years vs 1-2 for M&A).",
+        "answer": "Authentication required. If accessible: (unread_emails × 2 min / 60) + (meetings × 60 min / 60) = total communication hours. Divide by 40 hours × 100 for percentage. Healthy range: 30-50%. Above 70% indicates communication overload.",
         "answer_variants": [
-          "Latin America market gap",
-          "regulatory risks",
-          "currency volatility",
-          "local competition",
-          "partnership alternative",
-          "organic expansion"
+          "communication load calculation",
+          "percentage of 40 hours",
+          "email + meeting time",
+          "communication overload assessment",
+          "authentication required"
         ],
-        "must_include": ["market gap", "risks", "alternative"],
+        "must_include": ["communication load", "percentage", "40 hours"],
         "facts": {
-          "market_gap": "Latin America payment infrastructure",
-          "risks": ["regulatory complexity", "currency volatility", "local competition"],
-          "alternatives": ["partnerships", "licensing", "organic expansion"],
-          "trade_offs": "M&A = high capital, fast; Organic = low capital, slow"
+          "requires_authentication": true,
+          "email_weight": "2 minutes each",
+          "meeting_weight": "60 minutes each",
+          "baseline": "40 hour work week",
+          "healthy_range": "30-50%",
+          "overload_threshold": "70%+"
         }
       },
       "evaluation": {
-        "criteria": "Must identify market gap, name 3 specific risks with reasoning, and provide 2+ viable alternatives with trade-off analysis",
-        "correctness_threshold": 0.75,
-        "must_cite_sources": true,
-        "allows_approximation": true,
-        "depth_bonus": true
-      }
-    },
-    {
-      "id": "sr_002",
-      "question": "Quantum computing companies claim they'll disrupt RSA encryption by 2030. Based on current progress, government investment trends, and cryptography migration timelines: Will enterprises realistically need to adopt post-quantum cryptography by 2030? What are the 2-3 key variables that determine this timeline?",
-      "category": "strategic_reasoning",
-      "difficulty": "hard",
-      "reasoning_trajectory": {
-        "expected_steps": 6,
-        "step_descriptions": [
-          "Research current quantum computing state (qubit counts, error rates)",
-          "Research government/private investment trends in quantum computing",
-          "Research post-quantum cryptography enterprise migration complexity",
-          "Calculate timeline to cryptographically relevant quantum computer",
-          "Synthesize: 2030 timeline assessment (likely too aggressive)",
-          "Identify 2-3 key variables: qubit scaling, error correction, migration lead time"
-        ],
-        "requires_synthesis": true,
-        "requires_calculation": true,
-        "reasoning_pattern": "forecasting_with_multi-variable_analysis"
-      },
-      "expected_behavior": {
-        "tools": ["perplexity_search", "calculator"],
-        "tool_order": "sequential",
-        "min_tools": 4,
-        "max_tools": 6,
-        "depth_target": 6
-      },
-      "ground_truth": {
-        "answer": "Current quantum computers have ~100-1,000 qubits with high error rates; breaking RSA-2048 requires millions of error-corrected qubits. Despite $30B+ government investments, experts estimate cryptographically relevant quantum computers won't arrive until 2035-2040, not 2030. However, enterprises should start post-quantum migration NOW because: (1) Migration takes 5-10 years for large organizations, (2) 'Harvest now, decrypt later' attacks are already possible. Key variables: (1) Qubit scaling rate (currently ~2x every 2-3 years), (2) Error correction breakthroughs (need 99.9%+ fidelity), (3) Enterprise migration complexity (legacy system retrofits).",
-        "answer_variants": [
-          "2030 too aggressive",
-          "2035-2040 more realistic",
-          "start migration now",
-          "harvest now decrypt later",
-          "qubit scaling rate",
-          "error correction"
-        ],
-        "must_include": ["2030", "timeline", "variables"],
-        "facts": {
-          "current_qubits": "100-1,000",
-          "needed_qubits": "millions",
-          "realistic_timeline": "2035-2040",
-          "key_variables": ["qubit scaling", "error correction", "migration lead time"],
-          "migration_time": "5-10 years"
-        }
-      },
-      "evaluation": {
-        "criteria": "Must assess 2030 timeline (likely too aggressive), provide realistic estimate with reasoning, and identify 2-3 critical variables with explanation",
-        "correctness_threshold": 0.75,
-        "must_cite_sources": true,
-        "allows_approximation": true,
-        "depth_bonus": true
-      }
-    },
-    {
-      "id": "sr_003",
-      "question": "A B2B SaaS company has two pricing strategies: (A) $99/month unlimited users, or (B) $10/user/month. Given typical B2B team sizes are 5-50 people: (1) At what team size does revenue equal out? (2) Which strategy likely has better Net Dollar Retention and why? (3) Which is riskier in a recession?",
-      "category": "strategic_reasoning",
-      "difficulty": "medium-hard",
-      "reasoning_trajectory": {
-        "expected_steps": 5,
-        "step_descriptions": [
-          "Calculate breakeven team size: 99 / 10 = ~10 users",
-          "Analyze revenue implications: <10 users favor A, >10 users favor B",
-          "Research Net Dollar Retention drivers in per-user vs flat pricing",
-          "Synthesize: Per-user (B) has better NDR due to expansion revenue",
-          "Recession analysis: Flat pricing (A) riskier as companies cut unlimited plans"
-        ],
-        "requires_synthesis": true,
-        "requires_calculation": true,
-        "reasoning_pattern": "optimization_with_scenario_analysis"
-      },
-      "expected_behavior": {
-        "tools": ["calculator", "perplexity_search"],
-        "tool_order": "sequential",
-        "min_tools": 2,
-        "max_tools": 4,
-        "depth_target": 5
-      },
-      "ground_truth": {
-        "answer": "(1) Revenue equalizes at ~10 users ($99 flat = $10 × 10 users). Teams <10 favor Strategy A, teams >10 favor Strategy B. (2) Strategy B (per-user) has better NDR (~110-120% vs 100-105%) because it captures expansion revenue as teams grow from 10→20→50 users, while flat pricing has no expansion mechanism. (3) Strategy A (flat) is riskier in recession: companies quickly cut 'unlimited' plans they underutilize, while per-user pricing scales down gracefully (drop from 50 to 30 users = 40% cost reduction, maintaining vendor relationship).",
-        "answer_variants": [
-          "breakeven 10 users",
-          "per-user better NDR",
-          "expansion revenue",
-          "flat pricing riskier",
-          "scales down gracefully"
-        ],
-        "must_include": ["10 users", "NDR", "recession"],
-        "facts": {
-          "breakeven_users": 10,
-          "better_ndr": "Strategy B (per-user)",
-          "ndr_reason": "expansion revenue as teams grow",
-          "recession_risk": "Strategy A (flat) riskier",
-          "recession_reason": "companies cut unlimited plans, per-user scales down"
-        }
-      },
-      "evaluation": {
-        "criteria": "Must calculate breakeven point (10 users), explain why per-user has better NDR (expansion revenue), and analyze recession risk with reasoning",
-        "correctness_threshold": 0.80,
-        "must_cite_sources": true,
-        "allows_approximation": true,
-        "depth_bonus": true
-      }
-    },
-    {
-      "id": "sr_004",
-      "question": "If Taiwan's semiconductor production drops 30% due to a natural disaster, trace the impact: (1) Which industries get hit first and hardest? (2) What's the likely timeline for price increases to reach consumers? (3) Which companies have the best risk mitigation (geographic diversification, inventory buffers)?",
-      "category": "strategic_reasoning",
-      "difficulty": "medium-hard",
-      "reasoning_trajectory": {
-        "expected_steps": 5,
-        "step_descriptions": [
-          "Research Taiwan semiconductor market concentration (TSMC ~50%+ advanced chips)",
-          "Map supply chain dependencies: identify most vulnerable industries",
-          "Calculate timeline: manufacturing lead time + inventory buffers",
-          "Research companies with geographic diversification strategies",
-          "Synthesize best mitigation: diverse sourcing + high inventory buffers"
-        ],
-        "requires_synthesis": true,
-        "requires_calculation": true,
-        "reasoning_pattern": "cascade_analysis_with_risk_mitigation"
-      },
-      "expected_behavior": {
-        "tools": ["perplexity_search", "calculator"],
-        "tool_order": "sequential",
-        "min_tools": 4,
-        "max_tools": 6,
-        "depth_target": 5
-      },
-      "ground_truth": {
-        "answer": "(1) Industries hit first/hardest: Automotive (30-40% chip content, JIT inventory), Smartphones (TSMC makes Apple/Qualcomm chips), AI/Data Centers (NVIDIA GPUs). Consumer electronics less vulnerable (broader supplier base). (2) Timeline: 3-6 months for consumer price increases (typical inventory buffers: 2-3 months + manufacturing lead time: 1-2 months + distribution: 1 month). (3) Best mitigation: Apple (dual-sources TSMC + Samsung, 6-9 month inventory for critical chips), Intel (US/Israel fabs, less TSMC-dependent), Amazon AWS (massive inventory buffers, negotiated capacity). Worst position: Small automotive OEMs (TSMC-dependent, low inventory).",
-        "answer_variants": [
-          "automotive hit hardest",
-          "smartphones vulnerable",
-          "3-6 months timeline",
-          "Apple dual-sources",
-          "Intel US fabs",
-          "inventory buffers"
-        ],
-        "must_include": ["industries", "timeline", "mitigation"],
-        "facts": {
-          "most_vulnerable": ["automotive", "smartphones", "AI data centers"],
-          "taiwan_concentration": "TSMC 50%+ advanced chips",
-          "timeline_months": "3-6 months",
-          "best_mitigation": ["dual sourcing", "high inventory buffers", "geographic diversification"],
-          "examples_good": ["Apple", "Intel", "Amazon AWS"],
-          "examples_bad": ["small automotive OEMs"]
-        }
-      },
-      "evaluation": {
-        "criteria": "Must identify 2-3 vulnerable industries with reasoning, estimate timeline with calculation/research, and name companies with mitigation strategies and why they work",
-        "correctness_threshold": 0.75,
-        "must_cite_sources": true,
+        "criteria": "Must attempt both Gmail and Calendar access, calculate weighted time for emails and meetings, compute percentage of 40-hour week, and provide assessment. If authentication fails, indicate clearly.",
+        "correctness_threshold": 0.70,
+        "must_cite_sources": false,
         "allows_approximation": true,
         "depth_bonus": true
       }

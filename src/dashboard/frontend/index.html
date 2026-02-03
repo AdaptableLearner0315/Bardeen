@@ -54,16 +54,15 @@
                                     <span class="example-type">Competitive Intelligence</span>
                                 </div>
                             </div>
-                            <div class="example-query" data-query="Summarize my emails">
-                                <span class="example-icon">📧</span>
+                            <div class="example-query" data-query="What is NVIDIA's revenue growth?">
+                                <span class="example-icon">💹</span>
                                 <div class="example-content">
-                                    <span class="example-text">"Summarize my emails"</span>
-                                    <span class="example-type">Actions - requires auth</span>
+                                    <span class="example-text">"What is NVIDIA's revenue growth?"</span>
+                                    <span class="example-type">Financial Analysis</span>
                                 </div>
                             </div>
                         </div>
                         <p class="auto-mode-hint">💡 Complex queries auto-trigger Deep Research mode</p>
-                        <p><strong>Available Tools:</strong> <span id="available-tools">Loading...</span></p>
                     </div>
 
                     <!-- Depth Metrics Display (shown after multi-tool queries) -->
@@ -94,41 +93,38 @@
                 </div>
 
                 <div class="chat-input-container">
-                    <!-- Research Mode Toggle -->
-                    <div class="mode-toggle">
-                        <span class="mode-label">Research Mode:</span>
-                        <div class="toggle-buttons">
-                            <button id="mode-auto" class="mode-button active" data-mode="auto">
-                                ✨ Auto
-                                <span class="mode-desc">AI detects complexity</span>
-                            </button>
-                            <button id="mode-normal" class="mode-button" data-mode="normal">
-                                🔍 Normal
-                                <span class="mode-desc">2-3 core tools</span>
-                            </button>
-                            <button id="mode-deep" class="mode-button" data-mode="deep">
-                                🔬 Deep
-                                <span class="mode-desc">5-10 tools</span>
+                    <div class="input-wrapper">
+                        <textarea
+                            id="chat-input"
+                            placeholder="Ask about a company, e.g., 'When was Stripe founded?' or 'Compare Slack vs Teams'"
+                            rows="2"
+                        ></textarea>
+                        <div class="input-actions">
+                            <!-- Compact Mode Selector (Perplexity-style) -->
+                            <div class="mode-selector">
+                                <button id="mode-auto" class="mode-icon active" data-mode="auto" title="Auto - AI detects complexity">
+                                    <span class="icon">✨</span>
+                                </button>
+                                <button id="mode-normal" class="mode-icon" data-mode="normal" title="Normal - Quick lookup (2-3 tools)">
+                                    <span class="icon">⚡</span>
+                                </button>
+                                <button id="mode-deep" class="mode-icon" data-mode="deep" title="Deep - Comprehensive research (5-10 tools)">
+                                    <span class="icon">🔬</span>
+                                </button>
+                            </div>
+                            <button id="send-button" class="send-btn" title="Send message">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13"/>
+                                </svg>
                             </button>
                         </div>
                     </div>
-
-                    <div class="input-group">
-                        <textarea
-                            id="chat-input"
-                            placeholder="Ask about a company, e.g., 'When was Stripe founded?' or 'What is Snowflake's market cap?'"
-                            rows="3"
-                        ></textarea>
-                        <button id="send-button" class="primary-button">
-                            Send
-                        </button>
-                    </div>
-                    <div class="chat-options">
-                        <label>
+                    <div class="input-footer">
+                        <label class="reset-option">
                             <input type="checkbox" id="reset-conversation">
-                            Reset conversation
+                            <span>New conversation</span>
                         </label>
-                        <span id="mode-indicator" class="mode-indicator">Mode: Auto (AI selects)</span>
+                        <span id="mode-indicator" class="mode-indicator">✨ Auto</span>
                     </div>
                 </div>
             </div>

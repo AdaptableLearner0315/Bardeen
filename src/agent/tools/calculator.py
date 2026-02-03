@@ -1,8 +1,33 @@
-"""Safe calculator tool for mathematical expressions."""
+"""Safe calculator tool for mathematical expressions.
+
+This module provides a safe AST-based calculator that evaluates mathematical
+expressions without using eval() or exec(). It only supports basic arithmetic
+operations and numeric literals.
+
+Key Classes:
+    Calculator: Safe mathematical expression evaluator inheriting from ToolBase
+
+Security:
+    - Uses AST parsing (no eval/exec)
+    - Only allows numeric operations
+    - No variables, functions, or imports
+    - Expression length limited
+    - Division by zero protection
+
+Usage:
+    from src.agent.tools.calculator import Calculator
+
+    calc = Calculator()
+    result = calc(expression="2 + 3 * 4")
+    print(result["result"])  # 14
+"""
 
 import ast
 import operator
 from typing import Dict, Any, Union
+
+from src.agent.tools.base_tool import ToolBase
+from src.shared.config import TIMEOUTS
 
 # Safe operators for evaluation
 SAFE_OPERATORS = {
@@ -16,15 +41,41 @@ SAFE_OPERATORS = {
 }
 
 
-class Calculator:
-    """
-    Safe mathematical expression evaluator.
+class Calculator(ToolBase):
+    """Safe mathematical expression evaluator.
+
+    Inherits from ToolBase for standard error handling and result formatting.
 
     Supports: +, -, *, /, **, parentheses, and numbers.
     Does NOT allow: variables, function calls, imports, or any other Python code.
+
+    Attributes:
+        max_expression_length: Maximum allowed expression length (default: 500)
+
+    Security Guarantees:
+        - AST-based evaluation (no exec/eval)
+        - Only numeric operations allowed
+        - Division by zero protection
+        - Expression length validation
+
+    Examples:
+        >>> calc = Calculator()
+        >>> result = calc(expression="2 + 3 * 4")
+        >>> result["result"]
+        14
+
+        >>> result = calc(expression="(100 / 5) ** 2")
+        >>> result["result"]
+        400.0
     """
 
     def __init__(self, max_expression_length: int = 500):
+        """Initialize calculator with expression length limit.
+
+        Args:
+            max_expression_length: Maximum characters in expression (default: 500)
+        """
+        super().__init__(name="calculator", timeout=TIMEOUTS.get("calculator", 1))
         self.max_expression_length = max_expression_length
 
     def calculate(self, expression: str) -> Union[float, int]:
@@ -133,26 +184,19 @@ class Calculator:
             }
         }
 
-    def __call__(self, expression: str) -> Dict[str, Any]:
-        """
-        Execute the calculator tool.
+    def _execute_internal(self, expression: str) -> Union[float, int]:
+        """Internal execution logic for calculator.
 
         Args:
             expression: Mathematical expression to evaluate
 
         Returns:
-            Dictionary with result or error
+            Calculated result
+
+        Raises:
+            ValueError: If expression is invalid or unsafe
+
+        Note:
+            Error handling is managed by ToolBase.__call__()
         """
-        try:
-            result = self.calculate(expression)
-            return {
-                "success": True,
-                "result": result,
-                "expression": expression
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "error": str(e),
-                "expression": expression
-            }
+        return self.calculate(expression)

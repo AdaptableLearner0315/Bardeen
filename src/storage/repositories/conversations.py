@@ -26,7 +26,8 @@ class ConversationRepository(BaseRepository[ConversationMessage]):
         role: str,
         content: str,
         mode: Optional[str] = None,
-        message_id: Optional[str] = None
+        message_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> ConversationMessage:
         """
         Save a conversation message.
@@ -37,20 +38,22 @@ class ConversationRepository(BaseRepository[ConversationMessage]):
             content: Message content
             mode: Research mode (normal, deep)
             message_id: Optional message ID (generates if None)
+            metadata: Optional metadata dict (stored as JSON)
 
         Returns:
             Saved ConversationMessage
         """
         msg_id = message_id or str(uuid.uuid4())
         timestamp = datetime.utcnow()
+        metadata_json = json.dumps(metadata) if metadata else None
 
         with self.db.get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO conversations (id, session_id, role, content, mode, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO conversations (id, session_id, role, content, mode, metadata, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (msg_id, session_id, role, content, mode, timestamp.isoformat())
+                (msg_id, session_id, role, content, mode, metadata_json, timestamp.isoformat())
             )
 
         logger.debug(f"Saved message {msg_id} for session {session_id}")

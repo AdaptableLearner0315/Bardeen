@@ -10,6 +10,14 @@ let evaluationList = [];
 let currentEvaluation = null;
 let currentMode = 'auto';  // 'auto', 'normal', or 'deep'
 
+// Helper function to safely format numbers
+function safeFixed(value, decimals = 1, defaultValue = 0) {
+    if (value === undefined || value === null || isNaN(value)) {
+        return defaultValue.toFixed(decimals);
+    }
+    return Number(value).toFixed(decimals);
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initializeTabs();
@@ -69,20 +77,13 @@ async function checkHealth() {
 function updateStatus(isOnline, tools) {
     const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
-    const toolsElement = document.getElementById('available-tools');
 
     if (isOnline) {
         statusDot.className = 'status-dot online';
         statusText.textContent = 'Connected';
-        if (toolsElement) {
-            toolsElement.textContent = tools.join(', ');
-        }
     } else {
         statusDot.className = 'status-dot offline';
         statusText.textContent = 'Offline - Check API keys';
-        if (toolsElement) {
-            toolsElement.textContent = 'Not available';
-        }
     }
 }
 
@@ -133,24 +134,28 @@ function initializeModeToggle() {
 function setMode(mode) {
     currentMode = mode;
 
-    // Update button states
-    document.querySelectorAll('.mode-button').forEach(btn => {
+    // Update button states (works with both .mode-button and .mode-icon)
+    document.querySelectorAll('.mode-icon, .mode-button').forEach(btn => {
         btn.classList.remove('active');
     });
-    document.getElementById(`mode-${mode}`).classList.add('active');
+    const modeBtn = document.getElementById(`mode-${mode}`);
+    if (modeBtn) modeBtn.classList.add('active');
 
-    // Update indicator
+    // Update compact indicator
     const modeIndicator = document.getElementById('mode-indicator');
     if (modeIndicator) {
         if (mode === 'auto') {
-            modeIndicator.textContent = 'Mode: Auto (AI selects)';
-            modeIndicator.style.color = '#4caf50';
+            modeIndicator.textContent = '✨ Auto';
+            modeIndicator.style.background = '#f0fdf4';
+            modeIndicator.style.color = '#166534';
         } else if (mode === 'normal') {
-            modeIndicator.textContent = 'Mode: Normal (2-3 tools)';
-            modeIndicator.style.color = '#666';
+            modeIndicator.textContent = '⚡ Normal';
+            modeIndicator.style.background = '#eff6ff';
+            modeIndicator.style.color = '#1e40af';
         } else {
-            modeIndicator.textContent = 'Mode: Deep (5-10 tools)';
-            modeIndicator.style.color = '#666';
+            modeIndicator.textContent = '🔬 Deep';
+            modeIndicator.style.background = '#f5f3ff';
+            modeIndicator.style.color = '#5b21b6';
         }
     }
 }
@@ -246,87 +251,117 @@ function addAssistantMessage(data) {
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message assistant';
 
-    // Build execution plan ASCII art display
-    let planHtml = '';
-    if (data.execution_plan) {
-        const plan = data.execution_plan;
-        planHtml = `
-            <div class="execution-plan">
-                <div class="plan-header">
-                    <span class="plan-icon">🎯</span>
-                    <span class="plan-title">Execution Plan</span>
+    // Build Multi-Agent Routing section
+    let routingHtml = '';
+    if (data.multi_agent_routing) {
+        const routing = data.multi_agent_routing;
+        const agentsHtml = routing.agents.map(a => `
+            <div class="agent-badge">
+                <span class="agent-icon">${a.icon}</span>
+                <span class="agent-name">${a.display_name}</span>
+            </div>
+        `).join('');
+
+        routingHtml = `
+            <div class="routing-info">
+                <div class="routing-header">
+                    <strong>🧠 Agent Routing:</strong>
+                    <span class="routing-mode ${routing.mode}">${routing.mode === 'multi_agent' ? 'Multi-Agent' : 'Single Agent'}</span>
                 </div>
-                <pre class="plan-ascii">${escapeHtml(plan.ascii_plan || '')}</pre>
+                <div class="agents-used">${agentsHtml}</div>
+                <div class="routing-reasoning">${escapeHtml(routing.routing_reasoning)}</div>
             </div>
         `;
     }
 
-    // Build step-by-step tree visualization
-    let treeHtml = '';
-    if (data.execution_plan && data.execution_plan.steps && data.execution_plan.steps.length > 0) {
-        const plan = data.execution_plan;
-        const stepsHtml = plan.steps.map((step, index) => {
-            const isLast = index === plan.steps.length - 1;
-            const statusIcon = step.status === 'success' ? '✓' : (step.status === 'failed' ? '✗' : '○');
-            const statusClass = step.status === 'success' ? 'success' : (step.status === 'failed' ? 'error' : 'pending');
-            const statusLabel = step.status === 'success' ? 'PASS' : (step.status === 'failed' ? 'FAIL' : 'SKIP');
+    // Build Agent Execution Details section
+    let agentExecutionsHtml = '';
+    if (data.agent_executions && data.agent_executions.length > 0) {
+        const executionsContent = data.agent_executions.map(agent => {
+            const toolsList = agent.tools_used.map((t, idx) => {
+                const status = t.status === 'success' ? '✓' : '✗';
+                const statusClass = t.status === 'success' ? 'success' : 'error';
+
+                let paramsStr = '';
+                if (t.params) {
+                    const entries = Object.entries(t.params);
+                    if (entries.length > 0) {
+                        paramsStr = entries.map(([k, v]) => {
+                            const val = typeof v === 'string' ? v : JSON.stringify(v);
+                            return `${k}: "${val.substring(0, 40)}${val.length > 40 ? '...' : ''}"`;
+                        }).join(', ');
+                    }
+                }
+
+                let reasoningStr = '';
+                if (t.reasoning && t.reasoning.trim()) {
+                    reasoningStr = `<div class="tool-reasoning">"${escapeHtml(t.reasoning)}"</div>`;
+                }
+
+                return `
+                    <div class="agent-tool-call ${statusClass}">
+                        <div class="tool-header">
+                            <span class="tool-status">${status}</span>
+                            <span class="tool-name">${t.tool}</span>
+                            <span class="tool-latency">${t.latency_ms.toFixed(0)}ms</span>
+                        </div>
+                        ${paramsStr ? `<div class="tool-params-mini">${escapeHtml(paramsStr)}</div>` : ''}
+                        ${reasoningStr}
+                    </div>
+                `;
+            }).join('');
+
+            const successPercent = (agent.success_rate * 100).toFixed(0);
 
             return `
-                <div class="tree-step ${statusClass}">
-                    <div class="tree-connector">${isLast ? '└──' : '├──'}</div>
-                    <div class="tree-content">
-                        <div class="tree-step-header">
-                            <span class="tree-step-num">Step ${step.step_number}</span>
-                            <span class="tree-step-desc">${escapeHtml(step.description)}</span>
-                            <span class="tree-status ${statusClass}">${statusIcon} ${statusLabel}</span>
-                        </div>
-                        <div class="tree-details">
-                            <div class="tree-tool">
-                                <span class="tree-label">Tool:</span>
-                                <span class="tree-value">${escapeHtml(step.tool)}</span>
-                            </div>
-                            <div class="tree-reason">
-                                <span class="tree-label">Why:</span>
-                                <span class="tree-value">${escapeHtml(step.tool_reason)}</span>
-                            </div>
-                            ${step.latency_ms > 0 ? `<div class="tree-latency">${step.latency_ms.toFixed(0)}ms</div>` : ''}
-                        </div>
+                <div class="agent-execution">
+                    <div class="agent-exec-header">
+                        <span class="agent-icon">${agent.icon}</span>
+                        <span class="agent-name">${agent.display_name}</span>
+                        <span class="agent-stats">${agent.tool_count} tool${agent.tool_count > 1 ? 's' : ''} • ${agent.total_latency_ms.toFixed(0)}ms • ${successPercent}% success</span>
+                    </div>
+                    <div class="agent-tools-list">
+                        ${toolsList}
                     </div>
                 </div>
             `;
         }).join('');
 
-        treeHtml = `
-            <div class="execution-tree">
-                <div class="tree-header">
-                    <span class="tree-icon">🌳</span>
-                    <span class="tree-title">Step-by-Step Execution</span>
+        agentExecutionsHtml = `
+            <details class="agent-executions-details" open>
+                <summary>
+                    <strong>🤖 Agent Execution Details</strong> (${data.agent_executions.length} agent${data.agent_executions.length > 1 ? 's' : ''})
+                </summary>
+                <div class="agent-executions-content">
+                    ${executionsContent}
                 </div>
-                <div class="tree-goal">
-                    <span class="goal-icon">🎯</span>
-                    <span class="goal-text">${escapeHtml(plan.goal || 'Answer the question')}</span>
-                </div>
-                <div class="tree-steps">
-                    ${stepsHtml}
-                </div>
+            </details>
+        `;
+    }
+
+    // Build simple tools summary
+    let toolsHtml = '';
+    if (data.tool_calls && data.tool_calls.length > 0) {
+        const uniqueTools = [...new Set(data.tool_calls.map(t => t.tool_name))];
+        toolsHtml = `
+            <div class="tool-info">
+                <strong>🔧 Tools used:</strong> ${uniqueTools.join(', ')}
             </div>
         `;
     }
 
-    // Build LLM thinking/reasoning trace (tool call details)
+    // Build legacy tool call details (collapsed)
     let thinkingHtml = '';
     if (data.tool_calls && data.tool_calls.length > 0) {
         const thinkingSteps = data.tool_calls.map((t, index) => {
             const status = t.status === 'success' ? '✓' : '✗';
             const statusClass = t.status === 'success' ? 'success' : 'error';
 
-            // Build reasoning display
             let reasoningHtml = '';
             if (t.llm_reasoning && t.llm_reasoning.trim()) {
                 reasoningHtml = `<div class="reasoning">"${escapeHtml(t.llm_reasoning)}"</div>`;
             }
 
-            // Build params display (show what was searched/calculated)
             let paramsHtml = '';
             if (t.params) {
                 const paramEntries = Object.entries(t.params);
@@ -355,23 +390,12 @@ function addAssistantMessage(data) {
         thinkingHtml = `
             <details class="tool-details">
                 <summary>
-                    <strong>🔧 Tool Call Details</strong> (${data.tool_calls.length} call${data.tool_calls.length > 1 ? 's' : ''})
+                    <strong>📋 Raw Tool Call Trace</strong> (${data.tool_calls.length} call${data.tool_calls.length > 1 ? 's' : ''})
                 </summary>
                 <div class="thinking-trace">
                     ${thinkingSteps}
                 </div>
             </details>
-        `;
-    }
-
-    let toolsHtml = '';
-    if (data.tool_calls && data.tool_calls.length > 0) {
-        // Get unique tool names (deduplicated)
-        const uniqueTools = [...new Set(data.tool_calls.map(t => t.tool_name))];
-        toolsHtml = `
-            <div class="tool-info">
-                <strong>🔧 Tools used:</strong> ${uniqueTools.join(', ')}
-            </div>
         `;
     }
 
@@ -410,14 +434,14 @@ function addAssistantMessage(data) {
 
     messageDiv.innerHTML = `
         <div class="message-header">
-            <span>Assistant <span style="font-size: 0.8rem; color: ${isAutoDetected ? '#4caf50' : '#888'};">(${modeLabel})</span></span>
+            <span>Assistant <span class="mode-badge ${isAutoDetected ? 'auto' : ''}">${modeLabel}</span></span>
             <span class="latency">${data.latency_ms.toFixed(0)}ms</span>
         </div>
         ${lowConfidenceHtml}
-        ${planHtml}
-        ${treeHtml}
         <div class="message-content">${formatAnswer(data.answer)}</div>
+        ${routingHtml}
         ${toolsHtml}
+        ${agentExecutionsHtml}
         ${thinkingHtml}
         ${asciiTraceHtml}
     `;
@@ -441,8 +465,6 @@ function addThinkingIndicator() {
     messageDiv.className = 'message thinking-message';
     messageDiv.id = messageId;
 
-    const modeText = currentMode === 'auto' ? 'Auto-detecting' : (currentMode === 'deep' ? 'Deep Research' : 'Normal');
-
     messageDiv.innerHTML = `
         <div class="thinking-container">
             <div class="thinking-animation">
@@ -451,8 +473,8 @@ function addThinkingIndicator() {
                 <div class="thinking-dot"></div>
             </div>
             <div class="thinking-text">
-                <span class="thinking-title">Analyzing your request...</span>
-                <span class="thinking-subtitle">${modeText} mode • Calling AI tools</span>
+                <span class="thinking-title">🧠 Routing to specialist agents...</span>
+                <span class="thinking-subtitle"></span>
             </div>
             <div class="thinking-progress">
                 <div class="progress-bar"></div>
@@ -473,11 +495,12 @@ let thinkingInterval = null;
 
 function startThinkingProgress(messageId) {
     const steps = [
-        'Analyzing your request...',
-        'Selecting relevant tools...',
-        'Gathering information...',
-        'Processing with AI...',
-        'Synthesizing results...'
+        { title: '🧠 Routing to specialist agents...', subtitle: 'Analyzing query intent' },
+        { title: '🏢 Company Research Agent', subtitle: 'Searching company data...' },
+        { title: '📊 Financial Analyst Agent', subtitle: 'Analyzing market data...' },
+        { title: '🔍 Competitive Intel Agent', subtitle: 'Comparing alternatives...' },
+        { title: '🔧 Executing tool calls...', subtitle: 'web_search, wikipedia, calculator' },
+        { title: '✨ Synthesizing responses...', subtitle: 'Merging agent outputs' }
     ];
     let stepIndex = 0;
 
@@ -489,11 +512,13 @@ function startThinkingProgress(messageId) {
         }
 
         const titleEl = messageDiv.querySelector('.thinking-title');
-        if (titleEl) {
+        const subtitleEl = messageDiv.querySelector('.thinking-subtitle');
+        if (titleEl && subtitleEl) {
             stepIndex = (stepIndex + 1) % steps.length;
-            titleEl.textContent = steps[stepIndex];
+            titleEl.textContent = steps[stepIndex].title;
+            subtitleEl.textContent = steps[stepIndex].subtitle;
         }
-    }, 2000);
+    }, 1500);
 }
 
 function stopThinkingProgress() {
@@ -528,7 +553,8 @@ async function loadEvaluations() {
     listContainer.innerHTML = '<p class="loading">Loading evaluations...</p>';
 
     try {
-        const response = await fetch(`${API_URL}/evaluations`);
+        // Use b2b-evaluations endpoint for B2B evaluation results
+        const response = await fetch(`${API_URL}/b2b-evaluations`);
         const data = await response.json();
 
         evaluationList = data.evaluations;
@@ -553,6 +579,7 @@ async function loadEvaluations() {
         });
 
     } catch (error) {
+        console.error('Error loading evaluations:', error);
         listContainer.innerHTML = `<p class="loading">Error loading evaluations: ${error.message}</p>`;
     }
 }
@@ -564,32 +591,38 @@ function createEvaluationCard(eval) {
 
     const timestamp = new Date(eval.timestamp).toLocaleString();
 
+    // Handle both B2B evaluation format and legacy format
+    const passRate = eval.overall_pass_rate !== undefined ? eval.overall_pass_rate : eval.overall_pass_5;
+    const avgScore = eval.avg_accuracy_score !== undefined ? eval.avg_accuracy_score : 0;
+    const toolPrecision = eval.tool_precision !== undefined ? eval.tool_precision : 0;
+    const questionCount = eval.total_questions !== undefined ? eval.total_questions : eval.dataset_size;
+
     card.innerHTML = `
         <h3>${eval.run_id}</h3>
         <p style="color: #666; font-size: 0.9rem;">${timestamp}</p>
         <div class="eval-metrics">
             <div class="metric">
-                <div class="metric-label">pass^5</div>
-                <div class="metric-value ${eval.overall_pass_5 >= 0.8 ? 'success' : 'warning'}">
-                    ${(eval.overall_pass_5 * 100).toFixed(0)}%
+                <div class="metric-label">Pass Rate</div>
+                <div class="metric-value ${passRate >= 0.75 ? 'success' : 'warning'}">
+                    ${(passRate * 100).toFixed(0)}%
                 </div>
             </div>
             <div class="metric">
-                <div class="metric-label">pass^10</div>
-                <div class="metric-value ${eval.overall_pass_10 >= 0.8 ? 'success' : 'warning'}">
-                    ${(eval.overall_pass_10 * 100).toFixed(0)}%
+                <div class="metric-label">Avg Score</div>
+                <div class="metric-value ${avgScore >= 70 ? 'success' : 'warning'}">
+                    ${avgScore.toFixed(1)}
                 </div>
             </div>
             <div class="metric">
-                <div class="metric-label">Consensus</div>
+                <div class="metric-label">Tool Precision</div>
                 <div class="metric-value">
-                    ${(eval.avg_consensus_strength * 100).toFixed(0)}%
+                    ${(toolPrecision * 100).toFixed(0)}%
                 </div>
             </div>
             <div class="metric">
                 <div class="metric-label">Questions</div>
                 <div class="metric-value">
-                    ${eval.dataset_size}
+                    ${questionCount}
                 </div>
             </div>
         </div>
@@ -608,7 +641,8 @@ async function loadEvaluationDetail(runId) {
     detailContent.innerHTML = '<p class="loading">Loading evaluation details...</p>';
 
     try {
-        const response = await fetch(`${API_URL}/evaluations/${runId}`);
+        // Use B2B evaluation endpoint for B2B results
+        const response = await fetch(`${API_URL}/b2b-evaluations/${runId}`);
         const data = await response.json();
 
         currentEvaluation = data;
@@ -616,6 +650,7 @@ async function loadEvaluationDetail(runId) {
         detailContent.innerHTML = renderEvaluationDetail(data);
 
     } catch (error) {
+        console.error('Error loading evaluation detail:', error);
         detailContent.innerHTML = `<p class="loading">Error loading details: ${error.message}</p>`;
     }
 }
@@ -623,51 +658,99 @@ async function loadEvaluationDetail(runId) {
 function renderEvaluationDetail(eval) {
     const timestamp = new Date(eval.timestamp).toLocaleString();
 
+    // Check if this is a B2B evaluation (has overall_pass_rate) or legacy format
+    const isB2BEval = eval.overall_pass_rate !== undefined;
+
     let html = `
         <h2>${eval.run_id}</h2>
         <p style="color: #666; margin-bottom: 20px;">${timestamp}</p>
 
         <div class="eval-metrics">
+    `;
+
+    if (isB2BEval) {
+        // B2B evaluation format - use safeFixed for all numeric values
+        html += `
             <div class="metric">
-                <div class="metric-label">pass^5</div>
-                <div class="metric-value success">${(eval.overall_pass_5 * 100).toFixed(1)}%</div>
+                <div class="metric-label">Pass Rate</div>
+                <div class="metric-value success">${safeFixed((eval.overall_pass_rate || 0) * 100, 1)}%</div>
             </div>
             <div class="metric">
-                <div class="metric-label">pass^10</div>
-                <div class="metric-value success">${(eval.overall_pass_10 * 100).toFixed(1)}%</div>
+                <div class="metric-label">Avg Score</div>
+                <div class="metric-value">${safeFixed(eval.avg_accuracy_score, 1)}/100</div>
             </div>
             <div class="metric">
-                <div class="metric-label">Consensus</div>
-                <div class="metric-value">${(eval.avg_consensus_strength * 100).toFixed(1)}%</div>
+                <div class="metric-label">Tool Precision</div>
+                <div class="metric-value">${safeFixed((eval.tool_precision || 0) * 100, 1)}%</div>
             </div>
             <div class="metric">
-                <div class="metric-label">Avg Latency</div>
-                <div class="metric-value">${eval.avg_latency_ms.toFixed(0)}ms</div>
+                <div class="metric-label">Avg Depth</div>
+                <div class="metric-value">${safeFixed(eval.avg_depth, 1)} steps</div>
             </div>
             <div class="metric">
-                <div class="metric-label">Error Recovery</div>
-                <div class="metric-value">${(eval.error_recovery_rate * 100).toFixed(1)}%</div>
+                <div class="metric-label">Multi-Tool Rate</div>
+                <div class="metric-value">${safeFixed((eval.multi_tool_rate || 0) * 100, 1)}%</div>
             </div>
             <div class="metric">
                 <div class="metric-label">Questions</div>
-                <div class="metric-value">${eval.dataset_size}</div>
+                <div class="metric-value">${eval.total_questions || 0}</div>
             </div>
+        `;
+    } else {
+        // Legacy evaluation format - use safeFixed for all numeric values
+        html += `
+            <div class="metric">
+                <div class="metric-label">pass^5</div>
+                <div class="metric-value success">${safeFixed((eval.overall_pass_5 || 0) * 100, 1)}%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">pass^10</div>
+                <div class="metric-value success">${safeFixed((eval.overall_pass_10 || 0) * 100, 1)}%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Consensus</div>
+                <div class="metric-value">${safeFixed((eval.avg_consensus_strength || 0) * 100, 1)}%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Questions</div>
+                <div class="metric-value">${eval.dataset_size || 0}</div>
+            </div>
+        `;
+    }
+
+    html += `
         </div>
 
         <h3 style="margin-top: 30px; margin-bottom: 15px;">By Category</h3>
         <div class="eval-metrics">
     `;
 
-    for (const [category, metrics] of Object.entries(eval.category_metrics)) {
-        html += `
-            <div class="metric">
-                <div class="metric-label">${category}</div>
-                <div style="font-size: 0.9rem; margin-top: 5px;">
-                    pass^5: ${(metrics.pass_5_rate * 100).toFixed(0)}%<br>
-                    pass^10: ${(metrics.pass_10_rate * 100).toFixed(0)}%
-                </div>
-            </div>
-        `;
+    if (eval.category_metrics) {
+        for (const [category, metrics] of Object.entries(eval.category_metrics)) {
+            if (isB2BEval) {
+                // B2B format: metrics is an object with pass_rate, avg_score, etc.
+                html += `
+                    <div class="metric">
+                        <div class="metric-label">${category.replace(/_/g, ' ')}</div>
+                        <div style="font-size: 0.9rem; margin-top: 5px;">
+                            Pass Rate: ${safeFixed((metrics.pass_rate || 0) * 100, 0)}%<br>
+                            Avg Score: ${safeFixed(metrics.avg_score, 1)}
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Legacy format
+                html += `
+                    <div class="metric">
+                        <div class="metric-label">${category}</div>
+                        <div style="font-size: 0.9rem; margin-top: 5px;">
+                            pass^5: ${safeFixed((metrics.pass_5_rate || 0) * 100, 0)}%<br>
+                            pass^10: ${safeFixed((metrics.pass_10_rate || 0) * 100, 0)}%
+                        </div>
+                    </div>
+                `;
+            }
+        }
     }
 
     html += `
@@ -676,26 +759,56 @@ function renderEvaluationDetail(eval) {
         <h3 style="margin-top: 30px; margin-bottom: 15px;">Question Results</h3>
     `;
 
-    eval.question_results.forEach(q => {
-        const pass5Icon = q.pass_5 ? '✓' : '✗';
-        const pass10Icon = q.pass_10 ? '✓' : '✗';
+    if (eval.question_results && eval.question_results.length > 0) {
+        eval.question_results.forEach(q => {
+            if (isB2BEval) {
+                // B2B format - use correct field names from actual data
+                const passedIcon = q.passed ? '✓' : '✗';
+                const passedClass = q.passed ? 'success' : 'warning';
 
-        html += `
-            <div class="question-card">
-                <div class="question-header">
-                    <span class="question-id">${q.question_id}</span>
-                    <span class="question-category">${q.category}</span>
-                </div>
-                <div class="question-text">${escapeHtml(q.question_text)}</div>
-                <div style="display: flex; gap: 20px; margin-top: 10px; font-size: 0.9rem;">
-                    <span>pass^5: ${pass5Icon}</span>
-                    <span>pass^10: ${pass10Icon}</span>
-                    <span>Consensus: ${(q.consensus_strength * 100).toFixed(0)}%</span>
-                    <span>Latency: ${q.avg_latency_ms.toFixed(0)}ms</span>
-                </div>
-            </div>
-        `;
-    });
+                // Use 'score' not 'avg_score'
+                const score = q.score !== undefined ? q.score : (q.avg_score || 0);
+
+                // Simple score tooltip (under 50 characters)
+                const scoreTooltip = 'AI-scored: tools, reasoning, answer (0-100)';
+
+                html += `
+                    <div class="question-card">
+                        <div class="question-header">
+                            <span class="question-id">${q.question_id}</span>
+                            <span class="question-category">${q.category}</span>
+                        </div>
+                        <div class="question-text">${escapeHtml(q.question_text || q.question || '')}</div>
+                        <div style="display: flex; gap: 20px; margin-top: 10px; font-size: 0.9rem;">
+                            <span class="${passedClass}">Status: ${passedIcon}</span>
+                            <span title="${scoreTooltip}" style="cursor: help; border-bottom: 1px dotted #666;">
+                                Score: ${safeFixed(score, 0)}/100
+                            </span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Legacy format
+                const pass5Icon = q.pass_5 ? '✓' : '✗';
+                const pass10Icon = q.pass_10 ? '✓' : '✗';
+
+                html += `
+                    <div class="question-card">
+                        <div class="question-header">
+                            <span class="question-id">${q.question_id}</span>
+                            <span class="question-category">${q.category}</span>
+                        </div>
+                        <div class="question-text">${escapeHtml(q.question_text)}</div>
+                        <div style="display: flex; gap: 20px; margin-top: 10px; font-size: 0.9rem;">
+                            <span>pass^5: ${pass5Icon}</span>
+                            <span>pass^10: ${pass10Icon}</span>
+                            <span>Consensus: ${safeFixed((q.consensus_strength || 0) * 100, 0)}%</span>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    }
 
     return html;
 }

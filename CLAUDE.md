@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> **Version**: 2.0.0 | **Last Updated**: 2026-02-01
+> **Version**: 3.1.0 | **Last Updated**: 2026-02-02
 > **Changelog**: See `.notes/CHANGELOG.md` for version history
 
 This file provides guidance to Claude Code when working with this repository.
@@ -14,6 +14,9 @@ A B2B Account Intelligence Agent with LLM-powered research, adaptive tool callin
 - **Auto Mode**: AI detects query complexity and selects appropriate depth
 - **Strict Limits**: 50-60 words (normal) or summary + details (deep)
 - **Trace Storage**: All tool calls persisted to SQLite
+- **B2B Evaluation**: 19 domain-specific questions across 4 categories (v3.1 complete)
+- **LLM-as-Judge**: 4-dimension scoring (Tool Selection, Execution, Reasoning, Answer)
+- **Depth Metrics**: Per-step pass^k for long-horizon planning evaluation
 
 ## Quick Start
 
@@ -29,8 +32,9 @@ python start_dashboard.py --port 8002
 # Quick test
 python test_agent.py
 
-# Evaluation
+# Evaluation (B2B dataset)
 python run_evaluation.py --max-questions 3
+python run_evaluation.py --dataset data/b2b_dataset.json  # Full B2B evaluation
 ```
 
 ## Response Guidelines (Non-Negotiable)
@@ -50,6 +54,29 @@ python run_evaluation.py --max-questions 3
 - Detailed analysis with citations below
 - Triggered by: "research", "analyze", financial queries, GitHub queries
 
+### CRITICAL: Response Truncation Prevention
+
+**NEVER allow responses to be truncated mid-sentence, mid-table, or mid-list.**
+
+Rules enforced in system prompts (`src/agent/llm_client.py`):
+- ALWAYS complete responses within token limit
+- If extensive info, PRIORITIZE most important points
+- NEVER start sentences you cannot finish
+- Tables MUST be complete - use prose for 5+ items
+- Max 3-4 table rows; longer comparisons use ranked prose
+- End with complete sentences, not mid-word
+
+Recovery mechanism (`_recover_from_truncation`):
+1. If `stop_reason == "max_tokens"`, recovery triggers
+2. Claude is re-prompted to summarize/paraphrase
+3. If still truncated, `_force_minimal_summary` creates 2-3 sentence response
+4. Unit tests in `tests/test_response_truncation.py` validate completeness
+
+**Test truncation prevention:**
+```bash
+pytest tests/test_response_truncation.py -v
+```
+
 ## Architecture
 
 ```
@@ -68,7 +95,19 @@ src/
 │       ├── perplexity.py      # Deep research (sonar/sonar-pro)
 │       ├── gmail.py           # Email actions
 │       └── google_calendar.py # Calendar actions
-├── evaluation/            # pass^k harness
+├── evaluation/
+│   ├── harness.py         # EvaluationHarness + B2BEvaluationHarness
+│   ├── dataset.py         # Dataset loading
+│   ├── visualizer.py      # ASCII visualization
+│   ├── llm_judge.py       # LLM-as-Judge (4-dimension scoring)
+│   ├── metrics/
+│   │   ├── pass_k.py      # pass^k consensus metrics
+│   │   ├── b2b_metrics.py # B2B-specific metrics (precision, recall, F1)
+│   │   └── depth_metrics.py # Depth-aware & per-step pass^k
+│   └── tracers/
+│       ├── tool_tracer.py  # Tool call tracing
+│       ├── error_tracer.py # Error tracking
+│       └── step_tracer.py  # Step-by-step reasoning tracer
 ├── dashboard/             # FastAPI + Vanilla JS
 ├── storage/               # SQLite repositories
 └── shared/                # Config, models
@@ -149,8 +188,10 @@ status, error_message, latency_ms, timestamp
 |----------|--------|-------------|
 | `/api/chat` | POST | Chat with mode selection |
 | `/api/health` | GET | Agent status |
-| `/api/evaluations` | GET | List runs |
-| `/api/dataset` | GET | Questions |
+| `/api/evaluations` | GET | List evaluation runs |
+| `/api/dataset` | GET | Questions (original) |
+| `/api/b2b-dataset` | GET | B2B evaluation questions |
+| `/api/b2b-evaluations` | GET | B2B evaluation results |
 
 ### Chat Request/Response
 ```json
@@ -158,22 +199,80 @@ status, error_message, latency_ms, timestamp
 {"message": "What is Apple's market cap?", "mode": "auto"}
 
 // Response
-{"answer": "...", "mode": "normal", "is_auto_detected": true, "latency_ms": 1234}
+{
+  "answer": "...",
+  "mode": "normal",
+  "is_auto_detected": true,
+  "latency_ms": 1234,
+  "depth_metrics": {
+    "max_depth": 2,
+    "avg_step_score": 23.5,
+    "depth_weighted_score": 85.2
+  }
+}
 ```
 
-## Evaluation (pass^k)
+## Evaluation Framework
 
-### Metrics
-- **pass^5**: 5 attempts, majority correct
-- **pass^10**: 10 attempts, majority correct
-- **Consensus**: 60% agreement required
+### B2B Dataset (19 Questions - v3.1 COMPLETE)
+
+**Status**: Phase 2 complete - 19 production-ready questions with multi-step reasoning trajectories
+
+| Category | Count | Difficulty Mix | Depth Range |
+|----------|-------|----------------|-------------|
+| Company Research | 5 | 3 hard, 1 medium-hard, 1 medium | 4-5 steps |
+| Financial Analysis | 5 | 3 hard, 2 medium-hard | 4-7 steps |
+| Competitive Intelligence | 5 | 2 hard, 2 medium-hard, 1 medium | 4-6 steps |
+| Strategic Reasoning | 4 | 2 hard, 2 medium-hard | 5-6 steps |
+
+**Dataset Characteristics (v3.1)**:
+- **Total Questions**: 19 (5-5-5-4 distribution)
+- **Avg Expected Depth**: 4.7 steps (improved from v3.0)
+- **Difficulty Distribution**: 53% hard, 37% medium-hard, 11% medium
+- **Complexity**: 100% require synthesis, ~70% require calculation
+- **New Category**: Strategic reasoning (causal analysis, forecasting, optimization, risk cascade)
+- **Change from v3.0**: Replaced action_execution (auth-dependent) with strategic_reasoning (auth-free)
+
+### LLM-as-Judge (4 Dimensions)
+| Dimension | Weight | What It Measures |
+|-----------|--------|------------------|
+| Tool Selection | 25% | Right tool for query type |
+| Tool Execution | 25% | Good parameters, correct usage |
+| Reasoning | 25% | Explained choices, logical flow |
+| Answer Quality | 25% | Factually correct, well-structured |
+
+### Depth-Aware Metrics
+| Metric | Description | Old Target | New Target (v3.0) |
+|--------|-------------|------------|-------------------|
+| Max Depth | Deepest reasoning chain | ≥ 4 | ≥ 5 |
+| Avg Depth | Average steps per query | ≥ 2.0 | ≥ 3.5 |
+| Avg Step Score | Quality at each step | ≥ 20/25 | ≥ 18/25 |
+| pass^5_step1 | First tool consistency | ≥ 70% | ≥ 70% |
+| pass^5_step2 | Second tool consistency | ≥ 60% | ≥ 60% |
+| Depth-Weighted Score | Quality × depth multiplier | N/A | ≥ 25 |
 
 ### Commands
 ```bash
-python run_evaluation.py                    # Full (200 calls)
-python run_evaluation.py --max-questions 3  # Quick test
-python run_evaluation.py --category geography
+# B2B evaluation (recommended)
+python run_evaluation.py --dataset data/b2b_dataset.json
+
+# Quick test
+python run_evaluation.py --max-questions 3
+
+# Category-specific
+python run_evaluation.py --category company_research
+python run_evaluation.py --category financial_analysis
 ```
+
+### Metrics Summary
+| Metric | Target | Description |
+|--------|--------|-------------|
+| pass^5 | ≥ 80% | Consensus with 5 attempts |
+| pass^10 | ≥ 85% | Consensus with 10 attempts |
+| Tool Precision | ≥ 80% | Correct tools / Total used |
+| Tool Recall | ≥ 70% | Correct tools / Expected tools |
+| Accuracy Score | ≥ 7.5/10 | LLM judge accuracy rating |
+| Overall Pass Rate | ≥ 75% | Questions passing all criteria |
 
 ## Security
 
@@ -199,6 +298,7 @@ python run_evaluation.py --category geography
 | Web Search | ~800ms |
 | Perplexity | ~2-5s |
 | Typical query | ~1-2s |
+| LLM Judge eval | ~3-5s |
 
 ## Development
 
@@ -216,6 +316,32 @@ class MyTool:
 self.register_tool("my_tool", MyTool())
 ```
 
+### Using the Evaluation Framework
+```python
+# B2B Evaluation with LLM Judge
+from src.evaluation import B2BEvaluationHarness, LLMJudge
+
+harness = B2BEvaluationHarness(agent, llm_judge=LLMJudge())
+results = await harness.run_b2b_evaluation(
+    dataset_path="data/b2b_dataset.json",
+    k=5
+)
+print(results.b2b_metrics)
+print(results.depth_metrics)
+```
+
+### Step Tracing
+```python
+from src.evaluation.tracers import StepTracer
+
+tracer = StepTracer(query="Compare Stripe vs Square")
+with tracer.trace_step("perplexity_search", {"query": "Stripe revenue"}):
+    result = tool.execute(...)
+    tracer.current_step.step_score = 23
+
+depth_metrics = tracer.get_depth_metrics()
+```
+
 ### Modifying Response Style
 Edit `src/agent/llm_client.py`:
 - `SYSTEM_PROMPT_NORMAL` - Casual 50-60 word responses
@@ -228,3 +354,6 @@ Edit `src/agent/llm_client.py`:
 3. **Fallbacks**: Significantly improve reliability
 4. **Word limits**: Users prefer concise answers
 5. **Auto-detect**: Reduces friction, improves UX
+6. **B2B alignment**: Evaluation must match use case
+7. **Depth metrics**: Multi-step reasoning is critical for B2B
+8. **LLM-as-Judge**: Process matters as much as output
