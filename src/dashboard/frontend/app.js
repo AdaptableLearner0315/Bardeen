@@ -328,7 +328,7 @@ function addAssistantMessage(data) {
         }).join('');
 
         agentExecutionsHtml = `
-            <details class="agent-executions-details" open>
+            <details class="agent-executions-details">
                 <summary>
                     <strong>🤖 Agent Execution Details</strong> (${data.agent_executions.length} agent${data.agent_executions.length > 1 ? 's' : ''})
                 </summary>
